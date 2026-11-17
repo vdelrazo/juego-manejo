@@ -1,0 +1,218 @@
+/* Todo pensado para dedos chicos: botones de 80 px o más y bien separados. */
+
+:root {
+  --orilla: 24px;
+  --cielo: #9fd8ff;
+  --tinta: #1d3557;
+  --sombra: 0 7px 0 rgba(0, 0, 0, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cielo);
+  font-family: -apple-system, system-ui, sans-serif;
+  /* Sin zoom, sin seleccionar texto y sin el menú de "mantener presionado" de iOS. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+#escena {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------- Botones ---------- */
+
+.boton {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  box-shadow: var(--sombra);
+  touch-action: none;
+  cursor: pointer;
+  transition: transform 0.06s, box-shadow 0.06s;
+}
+
+.boton svg {
+  width: 58%;
+  height: 58%;
+  pointer-events: none;
+}
+
+.boton:active,
+.boton.apretado {
+  transform: translateY(5px) scale(0.95);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- Durante el juego ---------- */
+
+#hud {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#hud .boton { pointer-events: auto; }
+
+#btn-casa {
+  top: calc(env(safe-area-inset-top) + var(--orilla));
+  left: calc(env(safe-area-inset-left) + var(--orilla));
+  width: 88px;
+  height: 88px;
+  background: #fff;
+}
+
+/* Interruptor de dos partes: la parte encendida es el modo actual. */
+#btn-modo {
+  top: calc(env(safe-area-inset-top) + var(--orilla));
+  right: calc(env(safe-area-inset-right) + var(--orilla));
+  width: 196px;
+  height: 100px;
+  border-radius: 50px;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+}
+
+#btn-modo .seg {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #dfe7ef;
+  opacity: 0.55;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+#btn-modo .seg svg { width: 78%; height: 78%; }
+
+#hud[data-modo="botones"] .seg-botones,
+#hud[data-modo="inclinar"] .seg-inclinar {
+  background: #ffb703;
+  opacity: 1;
+}
+
+#btn-modo.no-se-puede { animation: no-se-puede 0.45s; }
+
+@keyframes no-se-puede {
+  20% { transform: translateX(-12px); }
+  40% { transform: translateX(12px); }
+  60% { transform: translateX(-8px); }
+  80% { transform: translateX(8px); }
+}
+
+#btn-izq,
+#btn-der {
+  bottom: calc(env(safe-area-inset-bottom) + var(--orilla));
+  width: 140px;
+  height: 140px;
+  background: #fb8500;
+}
+
+#btn-izq { left: calc(env(safe-area-inset-left) + var(--orilla)); }
+#btn-der { left: calc(env(safe-area-inset-left) + var(--orilla) + 140px + 48px); }
+
+#hud[data-modo="inclinar"] .solo-botones { display: none; }
+
+#btn-acelerar {
+  right: calc(env(safe-area-inset-right) + var(--orilla));
+  bottom: calc(env(safe-area-inset-bottom) + var(--orilla));
+  width: 180px;
+  height: 180px;
+  background: #2dc653;
+}
+
+/* ---------- Pantalla de inicio ---------- */
+
+#inicio {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: end center;   /* abajo, para que se vea el carro */
+  padding-bottom: calc(env(safe-area-inset-bottom) + 9vh);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0) 30%, rgba(159, 216, 255, 0.55) 100%);
+}
+
+#btn-jugar {
+  position: static;
+  width: 220px;
+  height: 220px;
+  background: #2dc653;
+  box-shadow: 0 10px 0 #1a7f34;
+  animation: latir 1.4s ease-in-out infinite;
+}
+
+#btn-jugar:active { animation: none; box-shadow: 0 3px 0 #1a7f34; }
+
+@keyframes latir {
+  50% { transform: scale(1.08); }
+}
+
+/* ---------- Aviso de girar el iPad ---------- */
+
+#girar {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  place-items: center;
+  background: var(--cielo);
+}
+
+#girar svg { width: min(60vw, 60vh); }
+
+#girar .tableta {
+  transform-origin: 100px 90px;
+  animation: girar-tableta 2.4s ease-in-out infinite;
+}
+
+@keyframes girar-tableta {
+  0%, 25% { transform: rotate(0deg); }
+  55%, 85% { transform: rotate(90deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@media (orientation: portrait) {
+  #girar { display: grid; }
+}
+
+/* ---------- Datos para revisar en el iPad (?depurar) ---------- */
+
+#depurar {
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top) + 8px);
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font: 14px/1.4 ui-monospace, Menlo, monospace;
+  white-space: pre;
+  pointer-events: none;
+}

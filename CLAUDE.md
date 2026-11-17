@@ -46,6 +46,8 @@ actualízala aquí.
 - **Modo botones:** botones en pantalla para izquierda, derecha y acelerar.
 - **Se cambia de modo en plena partida** con un botón siempre visible, sin pausar ni salir.
 - Al soltar el acelerador, el vehículo frena solo poco a poco.
+- **Sin reversa** (decidido 2026-11-17): para dar la vuelta se gira en U.
+- **Se puede girar estando parado, pero despacio**, para que nunca se quede atorado de frente a algo.
 
 ### Jugadores
 - Un jugador; cada quien juega en su propio iPad.
@@ -54,18 +56,26 @@ actualízala aquí.
 ## Decisiones técnicas
 
 - **HTML + JavaScript (módulos ES) + Three.js.** Sin paso de compilación: lo que está en `main` es lo que se publica.
-- **Three.js copiado dentro del repo** (`vendor/`), no cargado desde un CDN, para que funcione sin internet.
+- **Three.js copiado dentro del repo** (`vendor/three/`, versión 0.187.0), no cargado desde un CDN, para que funcione sin internet.
+- **Modelos hechos con cajas y cilindros** en el código, sin archivos 3D. Sonidos generados con Web Audio, sin archivos de audio.
+- **`?depurar`** al final de la dirección muestra fps y lo que lee el sensor de inclinación, para revisar en el iPad.
 - **GitHub Pages** se publica desde la raíz de la rama `main`. `.nojekyll` evita que Jekyll procese los archivos.
 - **PWA:** con `manifest.json` y un *service worker*, el juego abre en pantalla completa, con ícono propio y sin internet.
 - Particularidades de iOS/Safari:
-  - **Inclinación:** `DeviceOrientationEvent.requestPermission()` solo funciona después de un toque del usuario y con HTTPS (GitHub Pages ya usa HTTPS). Se pide al elegir el modo inclinar.
+  - **Inclinación:** se lee la gravedad con `devicemotion` (no los ángulos de `deviceorientation`), así funciona igual con el iPad parado o acostado y por cualquiera de sus dos lados horizontales. Unos grados al centro no tienen efecto, para que ir derecho sea fácil. `DeviceMotionEvent.requestPermission()` solo funciona después de un toque del usuario y con HTTPS (GitHub Pages ya usa HTTPS). Por ahora se pide al tocar ▶ para empezar (normalmente lo toca un adulto), así el niño cambia de modo después sin ventanas de por medio. Si se niega, el juego sigue en modo botones.
   - **Audio:** iOS no reproduce sonido hasta el primer toque. El botón de "Jugar" desbloquea el audio y la voz.
   - **Orientación:** iOS ignora `orientation` del manifest. Si el iPad está vertical, se muestra un aviso visual de "gira tu iPad".
   - **Rendimiento:** pocos polígonos, sombras sencillas y `devicePixelRatio` limitado a 2.
+- **iPads:** probablemente "iPad 11" (iPad de 11.ª generación o un modelo de 11 pulgadas; falta
+  confirmar en *Ajustes > General > Información*). Cualquiera de esos mueve sin problema un 3D
+  *low-poly* a 60 fps, así que se mantiene el estilo sencillo sin recortes extra.
+- **Nombre:** por ahora se queda como está: "A manejar" en la pantalla de inicio del iPad y
+  `juego-manejo` como repo.
 
 ## Fases
 
 1. **Prototipo:** un carro sobre terreno plano, cámara detrás, controles de botones e inclinación, y cambio de control en plena partida.
+   *Hecha el 2026-11-17; falta probarla en el iPad.*
 2. **Pueblito y choques:** calles, casas y árboles; choques con rebote, sonido y "¡Cuidado, me dolió!".
 3. **Menú de inicio:** elegir vehículo (2 o 3) y modo (paseo libre o misiones).
 4. **Misiones y semáforos:** estrellas, entregas, flecha guía y estrellas extra por respetar el rojo.
@@ -73,7 +83,5 @@ actualízala aquí.
 
 ## Preguntas abiertas
 
-- Nombre del juego (el repo se llama `juego-manejo` por ahora).
-- ¿Hace falta reversa? Para 3 a 5 años podría bastar con girar en U.
-- ¿Qué modelos son los iPads? Define cuánto detalle 3D aguantan.
+- Confirmar el modelo exacto de los iPads.
 - Lista concreta de misiones para la fase 4.

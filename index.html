@@ -5,25 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="A manejar">
+  <meta name="theme-color" content="#9fd8ff">
   <title>A manejar</title>
-  <style>
-    html, body { margin: 0; height: 100%; }
-    body {
-      display: grid; place-items: center;
-      background: #7ec8f5; color: #1d3557;
-      font-family: -apple-system, system-ui, sans-serif;
-      text-align: center;
-    }
-    .carro { font-size: 30vmin; animation: avanzar 2s ease-in-out infinite alternate; }
-    @keyframes avanzar { from { transform: translateX(-10vw); } to { transform: translateX(10vw); } }
-    p { font-size: 6vmin; font-weight: 700; margin: 0; }
-  </style>
+  <link rel="stylesheet" href="css/juego.css">
+  <script type="module" src="js/main.js"></script>
 </head>
 <body>
-  <div>
-    <div class="carro">🚗</div>
-    <p>¡Muy pronto!</p>
+  <canvas id="escena"></canvas>
+
+  <!-- Durante el juego -->
+  <div id="hud" data-modo="botones" hidden>
+    <button id="btn-casa" class="boton" aria-label="Inicio">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M50 14 L90 50 H78 V86 H58 V64 H42 V86 H22 V50 H10 Z" fill="#e63946" stroke="#7a1c24" stroke-width="5" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <button id="btn-modo" class="boton" aria-label="Cambiar control">
+      <span class="seg seg-botones" aria-hidden="true">
+        <svg viewBox="0 0 100 100">
+          <circle cx="27" cy="50" r="22" fill="#fff"/>
+          <circle cx="73" cy="50" r="22" fill="#fff"/>
+          <path d="M33 38 L19 50 L33 62 Z M67 38 L81 50 L67 62 Z" fill="#1d3557"/>
+        </svg>
+      </span>
+      <span class="seg seg-inclinar" aria-hidden="true">
+        <svg viewBox="0 0 100 100">
+          <g transform="rotate(-20 50 50)">
+            <rect x="18" y="30" width="64" height="44" rx="8" fill="#fff" stroke="#1d3557" stroke-width="5"/>
+          </g>
+          <path d="M14 30 A40 40 0 0 1 40 10" fill="none" stroke="#1d3557" stroke-width="6" stroke-linecap="round"/>
+          <path d="M86 70 A40 40 0 0 1 60 90" fill="none" stroke="#1d3557" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+      </span>
+    </button>
+
+    <button id="btn-izq" class="boton solo-botones" aria-label="Izquierda">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M64 18 L26 50 L64 82 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg>
+    </button>
+    <button id="btn-der" class="boton solo-botones" aria-label="Derecha">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M36 18 L74 50 L36 82 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg>
+    </button>
+
+    <button id="btn-acelerar" class="boton" aria-label="Acelerar">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 20 L82 70 H18 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg>
+    </button>
   </div>
+
+  <!-- Pantalla de inicio -->
+  <div id="inicio">
+    <button id="btn-jugar" class="boton" aria-label="Jugar">
+      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M36 22 L78 50 L36 78 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+  <!-- Aviso para girar el iPad (solo aparece en vertical) -->
+  <div id="girar" aria-label="Gira tu iPad">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <g class="tableta">
+        <rect x="65" y="35" width="70" height="110" rx="12" fill="#fff" stroke="#1d3557" stroke-width="8"/>
+        <circle cx="100" cy="132" r="5" fill="#1d3557"/>
+      </g>
+      <path d="M150 60 A60 60 0 0 1 160 120" fill="none" stroke="#e63946" stroke-width="10" stroke-linecap="round"/>
+      <path d="M146 108 L160 128 L172 106" fill="none" stroke="#e63946" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <div id="depurar" hidden></div>
 </body>
 </html>

@@ -174,3 +174,7 @@ renderer.setAnimationLoop((ahora) => {
 
 // Para revisar el estado desde la consola o en pruebas automáticas.
 if (depurar) window.__juego = { carro, controles, get jugando() { return jugando; } };
+
+// Todo listo: ya se puede jugar.
+$('cargando').hidden = true;
+$('btn-jugar').hidden = false;

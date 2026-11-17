@@ -56,7 +56,9 @@
 
   <!-- Pantalla de inicio -->
   <div id="inicio">
-    <button id="btn-jugar" class="boton" aria-label="Jugar">
+    <!-- Mientras carga se ve el círculo girando; el ▶ aparece cuando el juego ya está listo. -->
+    <div id="cargando" aria-label="Cargando"></div>
+    <button id="btn-jugar" class="boton" aria-label="Jugar" hidden>
       <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M36 22 L78 50 L36 78 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg>
     </button>
   </div>

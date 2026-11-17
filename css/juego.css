@@ -172,6 +172,20 @@ html, body {
   50% { transform: scale(1.08); }
 }
 
+#cargando {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 50px;
+  border-radius: 50%;
+  border: 16px solid rgba(255, 255, 255, 0.6);
+  border-top-color: #2dc653;
+  animation: dar-vueltas 0.9s linear infinite;
+}
+
+@keyframes dar-vueltas {
+  to { transform: rotate(360deg); }
+}
+
 /* ---------- Aviso de girar el iPad ---------- */
 
 #girar {

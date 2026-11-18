@@ -1,14 +1,25 @@
-// Cómo se ve cada vehículo: color, calcomanías y lodo. Se guarda en este iPad.
+// Cómo se ve cada vehículo: color, calcomanías, lodo, piezas y daños. Se guarda en este iPad.
 //
 // Calcomanías y manchas de lodo son "parches" (DecalGeometry) pegados sobre la carrocería:
 // van dentro del vehículo, así que se mueven con él.
 
 import * as THREE from 'three';
 import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
+import {
+  ponerRines, ponerLlantasGrandes, ponerAleron, ponerTecho, ponerColorCasco,
+  piezasDanables, piezasDeLado, danarPieza,
+} from './modelos.js';
 
 const CLAVE = 'juego-manejo:vehiculos';
 const N_MANCHAS = 14;
 const MAX_CALCOMANIAS = 8;
+const MAX_RAYONES = 6;
+
+// Piezas que trae cada vehículo de fábrica.
+export const PIEZAS_INICIALES = {
+  carro: { rines: 'clasico', grandes: false, aleron: 'ninguno', techo: 'nada', claxon: 'normal' },
+  moto: { rines: 'deportivo', casco: '#ffd60a', claxon: 'normal' },
+};
 
 function leerTodo() {
   try { return JSON.parse(localStorage.getItem(CLAVE)) || {}; } catch { return {}; }
@@ -44,6 +55,29 @@ export function texturaCalcomania(emoji) {
     texturasCalcomania.set(emoji, t);
   }
   return texturasCalcomania.get(emoji);
+}
+
+let texturaRayon = null;
+function rayon() {
+  if (!texturaRayon) {
+    const azar = azarFijo(42);
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.lineCap = 'round';
+    for (let i = 0; i < 6; i++) {
+      g.strokeStyle = i % 2 ? 'rgba(235,235,235,0.95)' : 'rgba(150,150,150,0.9)';
+      g.lineWidth = 2 + azar() * 3;
+      g.beginPath();
+      const y = 30 + i * 12 + azar() * 6;
+      g.moveTo(14 + azar() * 10, y);
+      g.quadraticCurveTo(64, y + (azar() - 0.5) * 20, 114 - azar() * 10, y + (azar() - 0.5) * 16);
+      g.stroke();
+    }
+    texturaRayon = new THREE.CanvasTexture(c);
+    texturaRayon.colorSpace = THREE.SRGBColorSpace;
+  }
+  return texturaRayon;
 }
 
 let texturaLodo = null;
@@ -118,8 +152,13 @@ export class Apariencia {
     this.lodo = 0;                            // 0 = limpio, 1 = lleno de lodo
     this.manchas = [];
     this.tamCalcomania = tipo === 'moto' ? 0.3 : 0.55;
+    this.piezas = { ...PIEZAS_INICIALES[tipo] };
+    this.danos = {};          // { defDel: true, … }
+    this.rayones = [];        // { lugar, malla, quitando }
     this.prepararManchas();
+    this.lugaresRayon = this.buscarLugares(7, 8, this.tipo === 'moto' ? 0.25 : 0.4);
     this.cargar();
+    this.aplicarPiezas();
   }
 
   // ---------- Guardar y cargar ----------
@@ -131,6 +170,9 @@ export class Apariencia {
     for (const c of d.calcomanias || []) this.pegar(c, false);
     this.lodo = d.lodo ?? 0;
     this.mostrarLodo();
+    Object.assign(this.piezas, d.piezas || {});
+    for (const id of Object.keys(d.danos || {})) if (d.danos[id]) this.danar(id, false);
+    for (const k of d.rayones || []) this.rayar(k, false);
   }
 
   guardar() {
@@ -139,6 +181,9 @@ export class Apariencia {
       color: '#' + (this.colorDestino ?? this.modelo.piel.color).getHexString(),
       calcomanias: this.calcomanias.map((c) => c.datos),
       lodo: redondear(this.lodo),
+      piezas: this.piezas,
+      danos: this.danos,
+      rayones: this.rayones.filter((r) => !r.quitando).map((r) => r.k),
     };
     guardarTodo(todo);
   }
@@ -182,6 +227,104 @@ export class Apariencia {
   }
 
   // ---------- Lodo ----------
+
+  // ---------- Piezas ----------
+
+  aplicarPiezas() {
+    const m = this.modelo;
+    const p = this.piezas;
+    ponerRines(m, p.rines);
+    if (this.tipo === 'carro') {
+      ponerLlantasGrandes(m, p.grandes);
+      ponerAleron(m, p.aleron);
+      ponerTecho(m, p.techo);
+    } else {
+      ponerColorCasco(m, p.casco);
+    }
+  }
+
+  ponerPieza(nombre, valor) {
+    this.piezas[nombre] = valor;
+    this.aplicarPiezas();
+    this.guardar();
+  }
+
+  // ---------- Daños (solo de apariencia) ----------
+
+  // Un choque: se daña algo del lado que pegó; si ya todo está dañado, un rayón más.
+  chocar(deFrente) {
+    const sanas = piezasDeLado(this.modelo, deFrente).filter((id) => !this.danos[id]);
+    if (sanas.length) this.danar(sanas[Math.floor(Math.random() * sanas.length)]);
+    if (!sanas.length || Math.random() < 0.35) this.rayar();
+  }
+
+  danar(id, guardar = true) {
+    this.danos[id] = true;
+    danarPieza(this.modelo, id, true);
+    if (guardar) this.guardar();
+  }
+
+  rayar(k = null, guardar = true) {
+    const usados = new Set(this.rayones.map((r) => r.k));
+    if (k === null) {
+      const libres = this.lugaresRayon.map((_, i) => i).filter((i) => !usados.has(i));
+      if (!libres.length || this.rayones.length >= MAX_RAYONES) return;
+      k = libres[Math.floor(Math.random() * libres.length)];
+    }
+    const lugar = this.lugaresRayon[k];
+    if (!lugar || usados.has(k)) return;
+    const malla = parche(lugar.pieza, lugar.p, lugar.n, lugar.tam, lugar.giro, materialParche(rayon(), 0.5));
+    this.rayones.push({ k, lugar, malla, quitando: false, opacidad: 1 });
+    if (guardar) this.guardar();
+  }
+
+  // Lo que hay que reparar, con su posición en el mundo (para poner la llave encima).
+  pendientes() {
+    const lista = [];
+    const piezas = piezasDanables(this.modelo);
+    for (const id of Object.keys(this.danos)) {
+      if (this.danos[id] && piezas[id]) lista.push({ id, objeto: piezas[id], posicion: () => piezas[id].getWorldPosition(new THREE.Vector3()) });
+    }
+    for (const r of this.rayones) {
+      if (!r.quitando) lista.push({ id: 'rayon', rayon: r, posicion: () => r.lugar.pieza.parent.localToWorld(r.lugar.p.clone()) });
+    }
+    return lista;
+  }
+
+  reparar(pendiente) {
+    if (pendiente.id === 'rayon') {
+      pendiente.rayon.quitando = true;
+    } else {
+      delete this.danos[pendiente.id];
+      danarPieza(this.modelo, pendiente.id, false);
+    }
+    this.guardar();
+  }
+
+  get cuantosDanos() {
+    return Object.values(this.danos).filter(Boolean).length + this.rayones.filter((r) => !r.quitando).length;
+  }
+
+  // Lugares fijos sobre la carrocería, encontrados disparando rayos hacia el vehículo.
+  buscarLugares(semilla, cuantos, tamBase) {
+    const raiz = this.modelo.raiz;
+    raiz.updateMatrixWorld(true);
+    const azar = azarFijo(semilla);
+    const rayo = new THREE.Raycaster();
+    const centro = new THREE.Vector3(0, this.tipo === 'moto' ? 0.9 : 0.75, 0);
+    const largo = this.tipo === 'moto' ? 1.4 : 2.4;
+    const lugares = [];
+    for (let k = 0; k < 400 && lugares.length < cuantos; k++) {
+      const dir = new THREE.Vector3(azar() - 0.5, (azar() - 0.6) * 0.8, (azar() - 0.5) * largo).normalize();
+      rayo.set(centro.clone().addScaledVector(dir, 6), dir.clone().negate());
+      const golpe = rayo.intersectObjects(this.superficies, false)[0];
+      if (!golpe) continue;
+      const { pieza, p, n } = puntoEnPieza(golpe);
+      if (lugares.some((m) => m.pieza === pieza && m.p.distanceTo(p) < 0.4)) continue;
+      lugares.push({ pieza, p, n, tam: tamBase + azar() * 0.15, giro: azar() * 6.28 });
+    }
+    return lugares;
+  }
 
   // Lugares fijos donde puede caer lodo: se buscan disparando rayos hacia el vehículo.
   prepararManchas() {
@@ -259,6 +402,18 @@ export class Apariencia {
       if (Math.abs(this.modelo.piel.color.r - this.colorDestino.r) + Math.abs(this.modelo.piel.color.g - this.colorDestino.g) + Math.abs(this.modelo.piel.color.b - this.colorDestino.b) < 0.003) {
         this.modelo.piel.color.copy(this.colorDestino);
         this.colorDestino = null;
+      }
+    }
+    for (let i = this.rayones.length - 1; i >= 0; i--) {
+      const r = this.rayones[i];
+      if (!r.quitando) continue;
+      r.opacidad -= dt * 2;
+      r.malla.material.opacity = Math.max(0, r.opacidad);
+      if (r.opacidad <= 0) {
+        r.malla.removeFromParent();
+        r.malla.geometry.dispose();
+        this.rayones.splice(i, 1);
+        this.guardar();
       }
     }
     for (const m of this.manchas) {

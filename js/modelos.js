@@ -32,6 +32,7 @@ const MAT = {
   hueco: new THREE.MeshStandardMaterial({ color: 0x141619, roughness: 1 }),
   piel: new THREE.MeshStandardMaterial({ color: 0x24262b, roughness: 0.5 }),
   faro: new THREE.MeshStandardMaterial({ color: 0xfff6dc, emissive: 0xfff0c8, emissiveIntensity: 0.9, roughness: 0.15 }),
+  faroRoto: new THREE.MeshStandardMaterial({ color: 0x5b6470, roughness: 0.6, metalness: 0.2 }),
   calavera: new THREE.MeshStandardMaterial({ color: 0xff3b3b, emissive: 0xff1f1f, emissiveIntensity: 0.7, roughness: 0.25 }),
   direccional: new THREE.MeshStandardMaterial({ color: 0xffa94d, emissive: 0xff8a1f, emissiveIntensity: 0.4, roughness: 0.3 }),
 };
@@ -287,7 +288,7 @@ export function crearCarro({ color = 0xef233c, rines = 'clasico', placa = 'AMIGO
   raiz.add(sombraPiso(2.8, 5));
 
   return {
-    raiz, cuerpo, ruedas, pivotesDelanteros, piel, faros, defensas,
+    tipo: 'carro', raiz, cuerpo, carroceria, ruedas, pivotesDelanteros, piel, faros, defensas,
     superficies: [lamina, cabina],   // donde se pegan calcomanías y lodo
     radioRueda: RUEDA_CARRO,
     anclaPaquete: { padre: carroceria, x: 0, y: 1.98, z: -0.42, tam: 0.85 },
@@ -315,7 +316,10 @@ export function crearMoto({ color = 0x1d7ff2, casco = 0xffd60a, chamarra = 0x06d
     const dona = new THREE.TorusGeometry(R - 0.07, 0.075, 14, 36);
     dona.rotateY(Math.PI / 2);
     g.add(malla(dona, MAT.hule));
-    g.add(rin(rines, R * 0.85, 0.1, 1));
+    const r = rin(rines, R * 0.85, 0.1, 1);
+    r.name = 'rin';
+    g.add(r);
+    g.userData = { radio: R * 0.85, ancho: 0.1, lado: 1 };
     const disco = malla(new THREE.CylinderGeometry(0.13, 0.13, 0.015, 24).rotateZ(Math.PI / 2), MAT.metal);
     disco.position.x = -0.07;
     g.add(disco);
@@ -406,10 +410,165 @@ export function crearMoto({ color = 0x1d7ff2, casco = 0xffd60a, chamarra = 0x06d
   raiz.add(sombraPiso(1.3, 2.8));
 
   return {
-    raiz, cuerpo, ruedas: [trasera, delantera], pivotesDelanteros: [pivote], piel, pielCasco, faros: [faro],
+    tipo: 'moto', raiz, cuerpo, ruedas: [trasera, delantera], pivotesDelanteros: [pivote], piel, pielCasco, faros: [faro], salpicadera,
     superficies: [tanque, cola, caja],
     radioRueda: R,
     anclaPaquete: { padre: cuerpo, x: 0, y: 1.2, z: -0.86, tam: 0.5 },
     alturaEstrellitas: 2.3,
   };
+}
+
+// ---------- Piezas que se cambian en el taller ----------
+
+export function ponerRines(modelo, estilo) {
+  for (const rueda of modelo.ruedas) {
+    const viejo = rueda.getObjectByName('rin');
+    if (viejo) rueda.remove(viejo);
+    const { radio, ancho, lado } = rueda.userData;
+    const r = rin(estilo, radio, ancho, lado);
+    r.name = 'rin';
+    rueda.add(r);
+  }
+}
+
+// Llantas gigantes (como de "monster truck"): ruedas más grandes y la carrocería más alta.
+export function ponerLlantasGrandes(modelo, si) {
+  if (modelo.tipo !== 'carro') return;
+  const k = si ? 1.35 : 1;
+  const r = RUEDA_CARRO * k;
+  for (const rueda of modelo.ruedas) {
+    rueda.scale.setScalar(k);
+    if (!modelo.pivotesDelanteros.includes(rueda.parent)) rueda.position.y = r;
+  }
+  for (const p of modelo.pivotesDelanteros) p.position.y = r;
+  modelo.cuerpo.position.y = 0.55 + (r - RUEDA_CARRO) * 1.8;
+  modelo.radioRueda = r;
+}
+
+function quitarPieza(padre, nombre) {
+  const vieja = padre.getObjectByName(nombre);
+  if (vieja) padre.remove(vieja);
+}
+
+export function ponerAleron(modelo, tipo) {
+  if (modelo.tipo !== 'carro') return;
+  quitarPieza(modelo.carroceria, 'aleron');
+  if (tipo === 'ninguno') return;
+  const g = new THREE.Group();
+  g.name = 'aleron';
+  const grande = tipo === 'grande';
+  const alto = grande ? 0.42 : 0.14;
+  for (const x of [-0.55, 0.55]) {
+    const poste = cajaR(0.07, alto + 0.05, 0.14, 0.03, MAT.plastico);
+    poste.position.set(x, 1.08 + alto / 2, -1.62);
+    g.add(poste);
+  }
+  const ala = cajaR(grande ? 1.95 : 1.6, 0.07, grande ? 0.48 : 0.36, 0.03, modelo.piel);
+  ala.position.set(0, 1.1 + alto, -1.68);
+  ala.rotation.x = -0.12;
+  g.add(ala);
+  if (grande) {
+    for (const x of [-0.98, 0.98]) {
+      const placa = cajaR(0.04, 0.22, 0.52, 0.02, MAT.plastico);
+      placa.position.set(x, 1.12 + alto, -1.68);
+      g.add(placa);
+    }
+  }
+  modelo.carroceria.add(g);
+}
+
+// Techo: nada, torreta de policía, de bomberos, letrero de taxi o maletas.
+export function ponerTecho(modelo, tipo) {
+  if (modelo.tipo !== 'carro') return;
+  quitarPieza(modelo.carroceria, 'techo');
+  modelo.luces = [];
+  if (tipo === 'nada') return;
+  const g = new THREE.Group();
+  g.name = 'techo';
+  g.position.set(0, 1.6, -0.42);
+  const luz = (color) => new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.25, roughness: 0.25 });
+  if (tipo === 'policia' || tipo === 'bomberos') {
+    g.add(cajaR(1.15, 0.08, 0.32, 0.03, MAT.plastico));
+    const colores = tipo === 'policia' ? [0xff2b2b, 0x2b6bff] : [0xff2b2b, 0xff2b2b];
+    colores.forEach((c, i) => {
+      const m = luz(c);
+      const foco = cajaR(0.5, 0.15, 0.28, 0.06, m);
+      foco.position.set(i ? 0.28 : -0.28, 0.1, 0);
+      g.add(foco);
+      modelo.luces.push(m);
+    });
+    if (tipo === 'bomberos') {
+      const centro = cajaR(0.12, 0.13, 0.26, 0.04, luz(0xffffff));
+      centro.position.y = 0.1;
+      g.add(centro);
+    }
+  } else if (tipo === 'taxi') {
+    const lienzo = document.createElement('canvas');
+    lienzo.width = 256;
+    lienzo.height = 96;
+    const c = lienzo.getContext('2d');
+    c.fillStyle = '#ffc300';
+    c.fillRect(0, 0, 256, 96);
+    c.fillStyle = '#1d1f23';
+    c.font = 'bold 72px sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText('TAXI', 128, 52);
+    const t = new THREE.CanvasTexture(lienzo);
+    t.colorSpace = THREE.SRGBColorSpace;
+    const amarillo = new THREE.MeshStandardMaterial({ color: 0xffc300, roughness: 0.4 });
+    const letrero = new THREE.MeshStandardMaterial({ map: t, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.3, roughness: 0.4 });
+    const caja = malla(new THREE.BoxGeometry(0.62, 0.24, 0.3), [amarillo, amarillo, amarillo, amarillo, letrero, letrero]);
+    caja.position.y = 0.13;
+    g.add(caja);
+  } else if (tipo === 'maletas') {
+    for (const x of [-0.6, 0.6]) {
+      const riel = cajaR(0.05, 0.06, 0.9, 0.02, MAT.metal);
+      riel.position.set(x, 0.05, 0);
+      g.add(riel);
+    }
+    [0xff8c42, 0x4ea8de].forEach((c, i) => {
+      const maleta = cajaR(0.55, 0.28, 0.42, 0.06, new THREE.MeshStandardMaterial({ color: c, roughness: 0.6 }));
+      maleta.position.set(i ? 0.3 : -0.3, 0.2, i ? -0.1 : 0.12);
+      maleta.rotation.y = i ? 0.15 : -0.1;
+      g.add(maleta);
+    });
+  }
+  modelo.carroceria.add(g);
+}
+
+export function ponerColorCasco(modelo, hex) {
+  if (modelo.pielCasco) modelo.pielCasco.color.set(hex);
+}
+
+// ---------- Daños (solo de apariencia) ----------
+
+// Piezas que se pueden dañar (y donde se pone la llave para repararlas).
+export function piezasDanables(modelo) {
+  if (modelo.tipo === 'carro') {
+    return { defDel: modelo.defensas[0], defTras: modelo.defensas[1], faroIzq: modelo.faros[0], faroDer: modelo.faros[1] };
+  }
+  return { salpicadera: modelo.salpicadera, faro: modelo.faros[0] };
+}
+
+// De frente se daña lo de adelante; de reversa, lo de atrás.
+export function piezasDeLado(modelo, deFrente) {
+  if (modelo.tipo === 'carro') return deFrente ? ['defDel', 'faroIzq', 'faroDer'] : ['defTras'];
+  return deFrente ? ['salpicadera', 'faro'] : [];
+}
+
+export function danarPieza(modelo, id, danada) {
+  const p = piezasDanables(modelo)[id];
+  if (!p) return;
+  if (id === 'defDel' || id === 'defTras') {
+    if (!p.userData.original) p.userData.original = { y: p.position.y };
+    p.rotation.z = danada ? (id === 'defDel' ? 0.24 : -0.24) : 0;
+    p.position.y = p.userData.original.y - (danada ? 0.07 : 0);
+  } else if (id.startsWith('faro')) {
+    p.material = danada ? MAT.faroRoto : MAT.faro;
+  } else if (id === 'salpicadera') {
+    if (p.userData.original === undefined) p.userData.original = p.rotation.x;
+    p.rotation.x = p.userData.original + (danada ? 0.45 : 0);
+    p.rotation.z = danada ? 0.25 : 0;
+  }
 }

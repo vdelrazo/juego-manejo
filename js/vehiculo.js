@@ -68,6 +68,8 @@ export class Vehiculo {
     this.armarPaquete();
     this.armarEstrellitas();
     this.apariencia = new Apariencia(tipo, this.modelo);
+    this.armarHumo();
+    this.sirena = 0;          // segundos que les quedan a las luces de la torreta
     // El vehículo no entra al mapa de sombras (que se recalcula de vez en cuando):
     // su sombra es la mancha suave pegada al piso que trae el modelo.
     this.objeto.traverse((m) => { m.castShadow = false; });
@@ -154,7 +156,8 @@ export class Vehiculo {
     if (impacto <= 0 || this.rebote > 0) return;
 
     if (impacto > UMBRAL_CHOQUE) {
-      // Choque: rebota suave hacia el lado contrario y se marea un momento.
+      // Choque: se daña algo del lado que pegó (solo se ve), rebota suave y se marea un momento.
+      this.apariencia.chocar(this.velocidad > 0);
       this.velocidad = -Math.sign(this.velocidad) * Math.min(4, 1 + impacto * 0.35);
       this.rebote = TIEMPO_REBOTE;
       this.mareo = 1;
@@ -169,7 +172,7 @@ export class Vehiculo {
 
   animar(dt, avanzar, retroceder) {
     // Ruedas que ruedan, y las de adelante que voltean.
-    const vuelta = (this.velocidad * dt) / this.radioRueda;
+    const vuelta = (this.velocidad * dt) / this.modelo.radioRueda;
     for (const rueda of this.ruedas) rueda.rotation.x += vuelta;
     for (const pivote of this.pivotesDelanteros) pivote.rotation.y = -this.giro * 0.45;
 
@@ -185,12 +188,62 @@ export class Vehiculo {
     this.mareo = Math.max(0, this.mareo - dt / 1.6);
     const sacudida = Math.sin(this.reloj * 32) * 0.07 * Math.max(0, this.mareo - 0.6) * 2.5;
     this.cuerpo.rotation.x = this.cabeceo + sacudida;
+    this.animarHumo(dt);
+    this.animarLuces(dt);
     this.estrellitas.visible = this.mareo > 0;
     if (this.estrellitas.visible) {
       this.estrellitas.rotation.y += dt * 5;
       const s = Math.min(1, this.mareo * 3);
       this.estrellitas.scale.set(s, s, s);
     }
+  }
+
+  // Claxon: si trae torreta, las luces parpadean un rato. Devuelve qué sonido toca.
+  tocarClaxon() {
+    const techo = this.apariencia.piezas.techo;
+    if (techo === 'policia' || techo === 'bomberos') {
+      this.sirena = 3.5;
+      return techo;
+    }
+    return this.apariencia.piezas.claxon;
+  }
+
+  // Humito del cofre cuando el vehículo está muy dañado (para que dé ganas de ir al taller).
+  armarHumo() {
+    const N = 10;
+    this.humo = new THREE.InstancedMesh(
+      new THREE.SphereGeometry(1, 10, 8),
+      new THREE.MeshStandardMaterial({ color: 0x9aa0a8, roughness: 1, transparent: true, opacity: 0.55, depthWrite: false }),
+      N,
+    );
+    this.humo.frustumCulled = false;
+    this.humo.count = 0;
+    this.bocanadas = Array.from({ length: N }, (_, i) => ({ t: i / N }));
+    this.origenHumo = this.tipo === 'moto' ? new THREE.Vector3(0, 0.75, 0.15) : new THREE.Vector3(0, 1.15, 1.35);
+    this.objeto.add(this.humo);
+  }
+
+  animarHumo(dt) {
+    const humea = this.apariencia.cuantosDanos >= 3;
+    this.humo.count = humea ? this.bocanadas.length : 0;
+    if (!humea) return;
+    const quieto = this.ayudaHumo ?? (this.ayudaHumo = new THREE.Object3D());
+    this.bocanadas.forEach((b, i) => {
+      b.t = (b.t + dt * 0.6) % 1;
+      quieto.position.copy(this.origenHumo).add({ x: Math.sin(b.t * 9 + i) * 0.1, y: b.t * 1.4, z: -b.t * 0.6 });
+      quieto.scale.setScalar(0.08 + b.t * 0.3);
+      quieto.updateMatrix();
+      this.humo.setMatrixAt(i, quieto.matrix);
+    });
+    this.humo.instanceMatrix.needsUpdate = true;
+  }
+
+  animarLuces(dt) {
+    const luces = this.modelo.luces;
+    if (!luces?.length) return;
+    this.sirena = Math.max(0, this.sirena - dt);
+    const fase = Math.floor(this.reloj * 6) % 2;
+    luces.forEach((m, i) => { m.emissiveIntensity = this.sirena > 0 ? (fase === i % 2 ? 3 : 0.1) : 0.25; });
   }
 
   // Caja de cartón para el reto del paquete (escondida hasta que hace falta).

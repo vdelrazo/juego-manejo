@@ -192,6 +192,63 @@ export function sonidoBurbujas() {
   }
 }
 
+// Taller: "clanc" metálico de la llave al reparar.
+export function sonidoClanc() {
+  for (const [f, cuando] of [[1650, 0], [2470, 0.005], [1240, 0.18], [1860, 0.185]]) {
+    pitido(f, f * 0.97, 0.12, 'square', 0.05, cuando);
+  }
+}
+
+// Una nota con forma de onda y volumen dados (para claxons y sirenas).
+function nota(tipo, desde, hasta, inicio, duracion, volumen, filtroHz = 2500) {
+  if (!ctx) return;
+  const t = ctx.currentTime + inicio;
+  const osc = ctx.createOscillator();
+  osc.type = tipo;
+  osc.frequency.setValueAtTime(desde, t);
+  osc.frequency.linearRampToValueAtTime(hasta, t + duracion);
+  const filtro = ctx.createBiquadFilter();
+  filtro.type = 'lowpass';
+  filtro.frequency.value = filtroHz;
+  const vol = ctx.createGain();
+  vol.gain.setValueAtTime(0.0001, t);
+  vol.gain.linearRampToValueAtTime(volumen, t + 0.02);
+  vol.gain.setValueAtTime(volumen, t + duracion - 0.04);
+  vol.gain.linearRampToValueAtTime(0.0001, t + duracion);
+  osc.connect(filtro).connect(vol).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + duracion + 0.02);
+}
+
+// Claxon según la pieza elegida: normal ("mec-mec"), pato ("cuac-cuac"), tren ("chu-chuuu"),
+// o sirena de policía o bomberos (si el carro trae torreta).
+export function claxon(tipo, moto = false) {
+  const agudo = moto ? 1.35 : 1;
+  if (tipo === 'pato') {
+    for (const i of [0, 0.32]) nota('sawtooth', 620, 380, i, 0.22, 0.14, 1400);
+  } else if (tipo === 'tren') {
+    nota('triangle', 520, 520, 0, 0.18, 0.12);
+    nota('triangle', 660, 660, 0, 0.18, 0.1);
+    nota('triangle', 520, 500, 0.25, 0.65, 0.12);
+    nota('triangle', 660, 640, 0.25, 0.65, 0.1);
+  } else if (tipo === 'policia') {
+    for (let i = 0; i < 3; i++) {
+      nota('triangle', 650, 1250, i * 0.9, 0.45, 0.12);
+      nota('triangle', 1250, 650, i * 0.9 + 0.45, 0.45, 0.12);
+    }
+  } else if (tipo === 'bomberos') {
+    for (let i = 0; i < 2; i++) {
+      nota('triangle', 500, 1100, i * 1.3, 0.9, 0.12);
+      nota('triangle', 1100, 500, i * 1.3 + 0.9, 0.4, 0.1);
+    }
+  } else {
+    for (const i of [0, 0.22]) {
+      nota('square', 410 * agudo, 410 * agudo, i, 0.17, 0.08, 1800);
+      nota('square', 515 * agudo, 515 * agudo, i, 0.17, 0.07, 1800);
+    }
+  }
+}
+
 // Taller: "pop" al pegar una calcomanía.
 export const sonidoPegar = () => pitido(520, 1250, 0.09, 'triangle', 0.22);
 

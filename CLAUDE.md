@@ -79,6 +79,18 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
   - 🧽 Lavado: el lodo son manchas pegadas a la carrocería (hasta 14). Se llena en unos 800 m de
     calle, más rápido en el pasto y con cada choque. Se quita tallando con el dedo (salen burbujas);
     al quedar limpio hay festejo. Un medidor de bolitas cafés muestra cuánto falta.
+- **Cómo quedó (parte 2, 2026-11-18):**
+  - Al entrar, el taller abre en lo que más hace falta: 🔧 si hay daños, 🧽 si hay lodo, si no 🎨.
+  - Daños por choque (solo de apariencia): de frente se cuelga la defensa delantera o se rompe
+    un faro; de reversa, la defensa trasera; además rayones (hasta 6). En la moto: salpicadera
+    chueca y faro roto. Con 3 o más daños sale humito del cofre.
+  - 🔧 Reparación: sobre cada daño flota una llave amarilla; al tocarla gira, suena "clanc-clanc"
+    y queda como nuevo. Al terminar: festejo y "¡Quedó como nuevo!".
+  - 🔩 Piezas del carro: rines (clásico, estrella, deportivo), llantas gigantes, alerón (chico o
+    grande), techo (torreta de policía, de bomberos, letrero de taxi o maletas) y claxon (normal,
+    pato o tren). De la moto: rines, color del casco y claxon.
+  - Al manejar hay un botón amarillo de claxon (abajo al centro). Con torreta suena la sirena y
+    las luces parpadean.
 
 ### Gráficas (pedido 2026-11-18: "lo más que se pueda")
 - Calidad lo más alta posible: materiales con reflejos (pintura con barniz, vidrios), cielo con
@@ -160,6 +172,7 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
 6. **Taller, parte 1:** edificio del taller, pantalla dividida, guardado, pintura y lavado (con suciedad al manejar).
    *Hecha el 2026-11-18.*
 7. **Taller, parte 2:** daños por choques, reparación y cambio de piezas.
+   *Hecha el 2026-11-18.*
 8. **Semáforos:** estrellas extra por detenerse en rojo.
 9. **Instalable y pulido:** PWA sin internet, ícono, música, voces y ajustes de rendimiento.
 
@@ -186,3 +199,4 @@ Abrir https://vdelrazo.github.io/juego-manejo/?depurar y revisar:
 12. ¿Estacionarse en el cajón es demasiado difícil o demasiado fácil?
 13. ¿Es fácil entrar al taller? ¿Se entiende el panel (pintura, calcomanías, lavado)?
 14. ¿Se ve bien el lodo y es fácil quitarlo tallando?
+15. ¿Se entienden las llaves para reparar y los dibujos de las piezas? ¿El botón de claxon estorba?

@@ -95,6 +95,8 @@
       <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 20 L82 70 H18 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg>
     </button>
 
+    <button id="btn-claxon" class="boton" aria-label="Claxon">📯</button>
+
     <div id="aviso-choque" hidden><span class="carita" aria-hidden="true">🤕</span>¡Cuidado, me dolió!</div>
   </div>
 
@@ -169,9 +171,16 @@
     </button>
     <div id="panel-taller">
       <div class="pestanas">
-        <button class="pestana" data-pestana="pintura" aria-label="Pintura">🎨</button>
+        <button class="pestana" data-pestana="reparacion" aria-label="Reparación">🔧</button>
         <button class="pestana" data-pestana="lavado" aria-label="Lavado">🧽</button>
+        <button class="pestana" data-pestana="pintura" aria-label="Pintura">🎨</button>
+        <button class="pestana" data-pestana="piezas" aria-label="Piezas">🔩</button>
       </div>
+      <div class="contenido" id="contenido-reparacion">
+        <div class="llave-grande" aria-hidden="true">🔧</div>
+        <div class="medidor-danos" aria-label="Daños"></div>
+      </div>
+      <div class="contenido" id="contenido-piezas"></div>
       <div class="contenido" id="contenido-pintura">
         <div class="botes"></div>
         <div class="calcomanias"></div>

@@ -144,7 +144,7 @@ const retos = new Retos(escena, ciudad, {
 
 // ---------- Taller ----------
 // Se entra manejando por el portón del taller. Adentro: el vehículo en una plataforma que gira
-// y el panel con 🎨 pintura y 🧽 lavado. El botón verde regresa a manejar.
+// y el panel con 🔧 reparación, 🧽 lavado, 🎨 pintura y 🔩 piezas. El botón verde regresa a manejar.
 
 const panelTaller = $('taller');
 let enTaller = false;
@@ -154,6 +154,7 @@ const taller = crearTaller(renderer, {
   decir: sonido.decir,
   sonidoBurbujas: sonido.sonidoBurbujas,
   sonidoPegar: sonido.sonidoPegar,
+  sonidoClanc: sonido.sonidoClanc,
   festejoChico() {
     sonido.sonidoFestejo();
     confeti();
@@ -207,12 +208,90 @@ function actualizarMedidor() {
   bolitas.forEach((b, i) => b.classList.toggle('limpia', i >= sucias));
 }
 
+// ---------- 🔧 Reparación: medidor de llaves ----------
+const medidorDanos = panelTaller.querySelector('.medidor-danos');
+let danosMostrados = -1;
+function actualizarMedidorDanos() {
+  const n = vehiculo.apariencia.cuantosDanos;
+  if (n === danosMostrados) return;
+  danosMostrados = n;
+  medidorDanos.textContent = n ? '🔧'.repeat(Math.min(n, 8)) : '✨🙂✨';
+}
+
+// ---------- 🔩 Piezas: filas de opciones (cambian según sea carro o moto) ----------
+const ICONO_RIN = {
+  clasico: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#1d1f23"/><circle cx="20" cy="20" r="11" fill="#c5ccd4"/>' +
+    [0, 1, 2, 3, 4, 5].map((i) => `<circle cx="${20 + 6.5 * Math.cos(i * 1.047)}" cy="${20 + 6.5 * Math.sin(i * 1.047)}" r="1.8" fill="#30343b"/>`).join('') + '</svg>',
+  estrella: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#1d1f23"/><circle cx="20" cy="20" r="11" fill="#9aa3ad"/>' +
+    [0, 1, 2, 3, 4].map((i) => `<rect x="18.5" y="9.5" width="3" height="10.5" fill="#eef2f6" transform="rotate(${i * 72} 20 20)"/>`).join('') + '</svg>',
+  deportivo: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#1d1f23"/><circle cx="20" cy="20" r="11" fill="#3b4048"/>' +
+    [...Array(10).keys()].map((i) => `<rect x="19.3" y="9.5" width="1.4" height="10.5" fill="#eef2f6" transform="rotate(${i * 36} 20 20)"/>`).join('') + '</svg>',
+};
+const SILUETA = (ala) => `<svg viewBox="0 0 48 30"><path d="M4 22 V16 Q4 13 8 13 L14 12 L19 6 H31 L36 12 L42 13 Q45 14 45 17 V22 Z" fill="#ef233c"/>${ala}<circle cx="13" cy="23" r="4" fill="#222"/><circle cx="36" cy="23" r="4" fill="#222"/></svg>`;
+const OPCIONES = {
+  carro: [
+    { pieza: 'rines', opciones: [['clasico', ICONO_RIN.clasico], ['estrella', ICONO_RIN.estrella], ['deportivo', ICONO_RIN.deportivo]], voz: '¡Rines nuevos!' },
+    { pieza: 'grandes', opciones: [[false, '<span style="font-size:60%">🛞</span>'], [true, '🛞']], voz: (v) => (v ? '¡Llantas gigantes!' : '¡Llantas normales!') },
+    { pieza: 'aleron', opciones: [['ninguno', SILUETA('')], ['chico', SILUETA('<rect x="2" y="10" width="9" height="2" fill="#30343b"/>')], ['grande', SILUETA('<rect x="0" y="5" width="11" height="2.5" fill="#30343b"/><rect x="4" y="7" width="1.5" height="6" fill="#30343b"/>')]], voz: (v) => (v === 'ninguno' ? '¡Sin alerón!' : '¡Alerón!') },
+    { pieza: 'techo', opciones: [['nada', '🚫'], ['policia', '🚨'], ['bomberos', '🚒'], ['taxi', '🚕'], ['maletas', '🧳']], voz: (v) => ({ nada: '¡Sin nada arriba!', policia: '¡Patrulla! Toca el claxon.', bomberos: '¡Bomberos! Toca el claxon.', taxi: '¡Taxi!', maletas: '¡Listo para el viaje!' })[v] },
+    { pieza: 'claxon', opciones: [['normal', '📯'], ['pato', '🦆'], ['tren', '🚂']], claxon: true },
+  ],
+  moto: [
+    { pieza: 'rines', opciones: [['clasico', ICONO_RIN.clasico], ['estrella', ICONO_RIN.estrella], ['deportivo', ICONO_RIN.deportivo]], voz: '¡Rines nuevos!' },
+    { pieza: 'casco', opciones: ['#ffd60a', '#ef233c', '#1d7ff2', '#2dc653', '#ff5fa2', '#f4f5f7'].map((c) => [c, '']), color: true, voz: '¡Casco nuevo!' },
+    { pieza: 'claxon', opciones: [['normal', '📯'], ['pato', '🦆'], ['tren', '🚂']], claxon: true },
+  ],
+};
+const contenidoPiezas = $('contenido-piezas');
+function armarPiezas() {
+  contenidoPiezas.replaceChildren();
+  for (const fila of OPCIONES[vehiculo.tipo]) {
+    const div = document.createElement('div');
+    div.className = 'fila-piezas';
+    const botones = [];
+    for (const [valor, icono] of fila.opciones) {
+      const b = document.createElement('button');
+      b.className = 'pieza' + (fila.color ? ' color' : '');
+      if (fila.color) b.style.background = valor;
+      else b.innerHTML = icono;
+      const marcar = () => botones.forEach(([v, x]) => x.classList.toggle('elegida', v === vehiculo.apariencia.piezas[fila.pieza]));
+      alTocar(b, () => {
+        vehiculo.apariencia.ponerPieza(fila.pieza, valor);
+        vehiculo.objeto.traverse((m) => { if (m.isMesh) m.castShadow = !m.material.transparent; });
+        marcar();
+        if (fila.claxon) sonido.claxon(valor, vehiculo.tipo === 'moto');
+        else {
+          sonido.sonidoClanc();
+          sonido.decir(typeof fila.voz === 'function' ? fila.voz(valor) : fila.voz);
+        }
+        taller.ponerLlaves();
+        ponerIconoClaxon();
+      });
+      botones.push([valor, b]);
+      div.appendChild(b);
+      marcar();
+    }
+    contenidoPiezas.appendChild(div);
+  }
+}
+
+// ---------- Claxon (botón amarillo al manejar) ----------
+const btnClaxon = $('btn-claxon');
+function ponerIconoClaxon() {
+  const p = vehiculo.apariencia.piezas;
+  btnClaxon.textContent = p.techo === 'policia' || p.techo === 'bomberos' ? '🚨' : { normal: '📯', pato: '🦆', tren: '🚂' }[p.claxon] ?? '📯';
+}
+alTocar(btnClaxon, () => sonido.claxon(vehiculo.tocarClaxon(), vehiculo.tipo === 'moto'));
+
 function ponerPestana(nombre) {
   panelTaller.dataset.pestana = nombre;
   taller.ponerPestana(nombre);
   for (const otro of botonesCalcomania) otro.classList.remove('elegida');
   const cual = vehiculo.tipo === 'moto' ? 'la moto' : 'el carro';
-  if (nombre === 'pintura') sonido.decir('¡Elige un color o una calcomanía!');
+  if (nombre === 'reparacion') {
+    sonido.decir(vehiculo.apariencia.cuantosDanos > 0 ? '¡Toca las llaves para arreglarlo!' : `¡${cual[0].toUpperCase() + cual.slice(1)} está como nuevo!`);
+  } else if (nombre === 'piezas') sonido.decir('¡Elige piezas nuevas!');
+  else if (nombre === 'pintura') sonido.decir('¡Elige un color o una calcomanía!');
   else if (vehiculo.apariencia.manchasVisibles > 0) sonido.decir(`¡Talla ${cual} con tu dedo para quitar el lodo!`);
   else sonido.decir(`¡${cual[0].toUpperCase() + cual.slice(1)} ya está limpio! Pero puedes echarle burbujas.`);
 }
@@ -229,8 +308,12 @@ function abrirTaller() {
   panelTaller.hidden = false;
   $('btn-taller-salir').textContent = (vehiculo.tipo === 'moto' ? '🏍️' : '🚗') + ' ➜';
   lodoMostrado = -1;
-  panelTaller.dataset.pestana = 'pintura';
-  taller.ponerPestana('pintura');
+  danosMostrados = -1;
+  armarPiezas();
+  // Empieza en lo que más hace falta: reparar, luego lavar; si no, pintar.
+  const inicial = vehiculo.apariencia.cuantosDanos > 0 ? 'reparacion' : vehiculo.apariencia.manchasVisibles > 0 ? 'lavado' : 'pintura';
+  panelTaller.dataset.pestana = inicial;
+  taller.ponerPestana(inicial);
   sonido.decir(vehiculo.tipo === 'moto' ? '¡Bienvenido al taller! ¿Qué le hacemos a tu moto?' : '¡Bienvenido al taller! ¿Qué le hacemos a tu carro?');
 }
 
@@ -250,6 +333,7 @@ alTocar($('btn-taller-salir'), () => {
   const s = ciudad.salidaTaller;
   vehiculo.colocar(s.x, s.z, s.rumbo);
   hud.hidden = false;
+  ponerIconoClaxon();
   sonido.decir('¡A manejar!');
 });
 alTocar($('btn-taller-casa'), () => {
@@ -311,6 +395,7 @@ for (const boton of document.querySelectorAll('[data-jugar]')) {
     motorApagado = false;
     avisoChoque.hidden = true;
     mostrarPantalla('juego');
+    ponerIconoClaxon();
     if (boton.dataset.jugar === 'retos') {
       retos.reiniciar();
       retos.empezar(vehiculo);
@@ -436,6 +521,7 @@ renderer.setAnimationLoop((ahora) => {
   if (enTaller) {
     taller.actualizar(dt);
     actualizarMedidor();
+    actualizarMedidorDanos();
     sonido.actualizarMotor(0, false);
     graficos.dibujar(taller.escena, taller.camara);
     if (depurar) mostrarDepuracion(dtReal);

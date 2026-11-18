@@ -2,7 +2,8 @@
 // y luz de estudio para que la pintura luzca. El vehículo se ve en la parte izquierda de la pantalla
 // (unos dos tercios) y el panel de la derecha tiene los módulos.
 //
-// Módulos de la parte 1: 🎨 pintura (colores y calcomanías) y 🧽 lavado (tallar el lodo).
+// Módulos: 🔧 reparación (tocar las llaves que flotan sobre lo dañado), 🧽 lavado (tallar el lodo),
+// 🎨 pintura (colores y calcomanías) y 🔩 piezas (el panel las cambia directo en el vehículo).
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -163,6 +164,56 @@ export function crearTaller(renderer, ui) {
   escena.add(brillo);
   let tiempoBrillo = 0;
 
+  // Llaves que flotan sobre lo que hay que reparar (pestaña 🔧).
+  // Llave sobre un círculo amarillo con borde blanco, para que se vea bien.
+  const texLlave = (() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.beginPath(); g.arc(128, 128, 124, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#ffc300';
+    g.beginPath(); g.arc(128, 128, 108, 0, Math.PI * 2); g.fill();
+    g.font = '150px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText('🔧', 128, 140);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
+  let llaves = [];   // { pendiente, sprite, girando }
+  function quitarLlaves() {
+    for (const l of llaves) escena.remove(l.sprite);
+    llaves = [];
+  }
+  function ponerLlaves() {
+    quitarLlaves();
+    if (!vehiculo || pestana !== 'reparacion') return;
+    for (const pendiente of vehiculo.apariencia.pendientes()) {
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texLlave, transparent: true, depthTest: false }));
+      sprite.renderOrder = 5;
+      escena.add(sprite);
+      llaves.push({ pendiente, sprite, girando: -1 });
+    }
+  }
+  function tocarLlave(e) {
+    let mejor = null;
+    let dMejor = 90;   // píxeles: generoso para dedos chicos
+    const p = new THREE.Vector3();
+    for (const l of llaves) {
+      if (l.girando >= 0) continue;
+      p.copy(l.sprite.position).project(camara);
+      const x = (p.x + 1) / 2 * innerWidth, y = (1 - p.y) / 2 * innerHeight;
+      const d = Math.hypot(x - e.clientX, y - e.clientY);
+      if (d < dMejor) { dMejor = d; mejor = l; }
+    }
+    if (!mejor) return false;
+    mejor.girando = 0;
+    ui.sonidoClanc();
+    return true;
+  }
+
   // ---------- Cámara ----------
   const camara = new THREE.PerspectiveCamera(34, 1, 0.1, 80);
   function ajustar() {
@@ -246,6 +297,10 @@ export function crearTaller(renderer, ui) {
     if (!arrastre) return;
     const fueToque = !arrastre.movio && !arrastre.tallando;
     arrastre = null;
+    if (fueToque && pestana === 'reparacion') {
+      tocarLlave(e);
+      return;
+    }
     if (fueToque && pestana === 'pintura' && calcomania) {
       const golpe = tocarVehiculo(e);
       if (golpe && vehiculo.apariencia.pegarEn(golpe, calcomania)) {
@@ -281,6 +336,7 @@ export function crearTaller(renderer, ui) {
     },
 
     cerrar() {
+      quitarLlaves();
       if (vehiculo) escena.remove(vehiculo.objeto);
       vehiculo = null;
       arrastre = null;
@@ -291,7 +347,11 @@ export function crearTaller(renderer, ui) {
     ponerPestana(nombre) {
       pestana = nombre;
       calcomania = null;
+      ponerLlaves();
     },
+
+    // Volver a poner las llaves (por ejemplo, después de un cambio de piezas).
+    ponerLlaves,
 
     elegirCalcomania(emoji) {
       calcomania = emoji;
@@ -320,7 +380,40 @@ export function crearTaller(renderer, ui) {
       plataforma.rotation.y = angulo;
       vehiculo.objeto.rotation.y = angulo;
       vehiculo.apariencia.actualizar(dt);
+      vehiculo.reloj += dt;
+      vehiculo.animarHumo(dt);
+      vehiculo.animarLuces(dt);
       renderer.shadowMap.needsUpdate = true;
+
+      // Llaves: flotan sobre lo dañado; al tocarlas giran, suenan y lo reparan.
+      for (let i = llaves.length - 1; i >= 0; i--) {
+        const l = llaves[i];
+        const pos = l.pendiente.posicion();
+        const sube = vehiculo.tipo === 'moto' ? 0.35 : 0.5;
+        l.sprite.position.set(pos.x, pos.y + sube + Math.sin(reloj * 3 + i) * 0.08, pos.z);
+        let tam = vehiculo.tipo === 'moto' ? 0.5 : 0.75;
+        if (l.girando >= 0) {
+          l.girando += dt;
+          l.sprite.material.rotation = l.girando * 14;
+          tam *= 1 + Math.sin(l.girando * 12) * 0.25;
+          if (l.girando > 0.35 && !l.segundoClanc) { l.segundoClanc = true; ui.sonidoClanc(); }
+          if (l.girando > 0.75) {
+            vehiculo.apariencia.reparar(l.pendiente);
+            for (let k = 0; k < 14; k++) {
+              soltar(pos, new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 2, (Math.random() - 0.5) * 2), 0xffd60a, 0.04, 0.7);
+            }
+            escena.remove(l.sprite);
+            llaves.splice(i, 1);
+            if (llaves.length === 0) {
+              ui.festejoChico();
+              ui.decir('¡Quedó como nuevo!');
+              tiempoBrillo = 1.6;
+            }
+            continue;
+          }
+        }
+        l.sprite.scale.set(tam, tam, tam);
+      }
 
       // Partículas.
       for (let i = vivas.length - 1; i >= 0; i--) {

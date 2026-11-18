@@ -509,3 +509,83 @@ html, body {
   background: #2dc653;
   box-shadow: 0 8px 0 #1a7f34;
 }
+
+/* ---------- Taller, parte 2: reparación, piezas y claxon ---------- */
+
+.pestanas { gap: 10px; }
+
+.pestana {
+  width: min(6.6vw, 80px);
+  height: min(6.6vw, 80px);
+  font-size: min(4.2vw, 46px);
+}
+
+#taller[data-pestana="reparacion"] .pestana[data-pestana="reparacion"],
+#taller[data-pestana="piezas"] .pestana[data-pestana="piezas"] {
+  background: #ffc300;
+}
+
+#taller[data-pestana="reparacion"] #contenido-reparacion,
+#taller[data-pestana="piezas"] #contenido-piezas { display: flex; }
+
+.llave-grande {
+  align-self: center;
+  font-size: 140px;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  animation: martillar 0.9s ease-in-out infinite;
+}
+
+@keyframes martillar {
+  0%, 100% { transform: rotate(-20deg); }
+  50% { transform: rotate(25deg); }
+}
+
+.medidor-danos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  font-size: 40px;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.fila-piezas {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pieza {
+  width: min(4.8vw, 62px);
+  height: min(4.8vw, 62px);
+  border-radius: 18px;
+  font-size: min(3.4vw, 38px);
+  line-height: 1;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: #eef2f6;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.12);
+}
+
+.pieza svg { width: 80%; height: 80%; pointer-events: none; }
+
+.pieza.elegida {
+  background: #ffe8a3;
+  box-shadow: 0 0 0 5px #ffc300, 0 5px 0 rgba(0, 0, 0, 0.12);
+}
+
+.pieza.color { border: 5px solid #fff !important; border-radius: 50%; }
+
+#btn-claxon {
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + var(--orilla) + 30px);
+  width: 112px;
+  height: 112px;
+  margin-left: -56px;
+  background: #ffd60a;
+  font-size: 58px;
+  line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  border: none;
+}

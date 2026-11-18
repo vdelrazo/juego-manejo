@@ -154,6 +154,61 @@ html, body {
   background: #3a86ff;
 }
 
+/* ---------- Qué hay que hacer en el reto (arriba al centro) ---------- */
+
+#reto {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + var(--orilla));
+  left: 50%;
+  transform: translateX(-50%);
+  height: 100px;
+  padding: 8px 18px;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--sombra);
+  display: flex;
+  align-items: center;
+}
+
+#reto > div { display: none; align-items: center; gap: 6px; }
+#reto[data-tipo="estrellas"] #reto-estrellas,
+#reto[data-tipo="paquete"] #reto-paquete,
+#reto[data-tipo="estacionarse"] #reto-cajon { display: flex; }
+
+#reto svg { width: 76px; height: 76px; }
+#reto-estrellas svg { width: 58px; height: 58px; }
+
+.ranura path { fill: #dfe7ef; stroke: #b8c0c8; stroke-width: 5; stroke-linejoin: round; }
+.ranura.llena path { fill: #ffd60a; stroke: #b08900; }
+.ranura.llena { animation: saltito 0.4s ease-out; }
+
+@keyframes saltito {
+  40% { transform: scale(1.4); }
+}
+
+/* ---------- Confeti del festejo ---------- */
+
+#confeti {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#confeti i {
+  position: absolute;
+  top: -24px;
+  width: 14px;
+  height: 20px;
+  border-radius: 3px;
+  animation: caer linear forwards;
+}
+
+@keyframes caer {
+  to { transform: translate(var(--deriva), 110vh) rotate(var(--giro)); }
+}
+
 /* ---------- "¡Cuidado, me dolió!" ---------- */
 
 #aviso-choque {
@@ -186,31 +241,57 @@ html, body {
   100% { transform: translateX(-50%) scale(1); opacity: 0; }
 }
 
-/* ---------- Pantalla de inicio ---------- */
+/* ---------- Menú: elegir vehículo y elegir modo ---------- */
 
 #inicio {
   position: fixed;
   inset: 0;
   z-index: 20;
   display: grid;
-  place-items: end center;   /* abajo, para que se vea el carro */
-  padding-bottom: calc(env(safe-area-inset-bottom) + 9vh);
+  place-items: end center;   /* abajo, para que se vea el vehículo */
+  padding-bottom: calc(env(safe-area-inset-bottom) + 7vh);
   background: radial-gradient(circle, rgba(255, 255, 255, 0) 30%, rgba(159, 216, 255, 0.55) 100%);
 }
 
-#btn-jugar {
-  position: static;
-  width: 220px;
-  height: 220px;
-  background: #2dc653;
-  box-shadow: 0 10px 0 #1a7f34;
-  animation: latir 1.4s ease-in-out infinite;
+.opciones {
+  display: flex;
+  gap: min(8vw, 80px);
 }
 
-#btn-jugar:active { animation: none; box-shadow: 0 3px 0 #1a7f34; }
+.opcion {
+  width: min(34vw, 300px);
+  height: min(25vw, 220px);
+  padding: 14px;
+  border: none;
+  border-radius: 36px;
+  background: #fff;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  touch-action: manipulation;
+  animation: latir 1.8s ease-in-out infinite;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+.opcion:nth-child(2) { animation-delay: 0.9s; }
+
+.opcion svg { width: 100%; height: 100%; pointer-events: none; }
+
+.opcion:active {
+  animation: none;
+  transform: translateY(6px) scale(0.96);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.22);
+}
 
 @keyframes latir {
-  50% { transform: scale(1.08); }
+  50% { transform: scale(1.05); }
+}
+
+#btn-volver {
+  top: calc(env(safe-area-inset-top) + var(--orilla));
+  left: calc(env(safe-area-inset-left) + var(--orilla));
+  width: 88px;
+  height: 88px;
+  background: #fff;
 }
 
 #cargando {
@@ -260,7 +341,7 @@ html, body {
 #depurar {
   position: fixed;
   left: 50%;
-  top: calc(env(safe-area-inset-top) + 8px);
+  bottom: calc(env(safe-area-inset-bottom) + 8px);
   transform: translateX(-50%);
   z-index: 40;
   padding: 6px 12px;

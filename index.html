@@ -42,6 +42,36 @@
       </span>
     </button>
 
+    <!-- Qué hay que hacer en el reto (sin texto: solo dibujos) -->
+    <div id="reto" hidden>
+      <div id="reto-estrellas"></div>
+      <div id="reto-paquete">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M20 38 L50 24 L80 38 L80 74 L50 88 L20 74 Z" fill="#c8996b" stroke="#7f5539" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M20 38 L50 52 L80 38 M50 52 L50 88" fill="none" stroke="#7f5539" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M35 31 L65 45" stroke="#f1e3c8" stroke-width="7"/>
+        </svg>
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M18 50 H72 M56 32 L76 50 L56 68" stroke="#1d3557" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <path id="casa-destino" d="M50 12 L92 50 H79 V88 H21 V50 H8 Z" fill="#4ea8de" stroke="#1d3557" stroke-width="5" stroke-linejoin="round"/>
+          <rect x="42" y="62" width="16" height="26" fill="#6b4f3f"/>
+        </svg>
+      </div>
+      <div id="reto-cajon">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <rect x="12" y="12" width="76" height="76" rx="12" fill="#1d4ed8" stroke="#fff" stroke-width="5"/>
+          <text x="50" y="74" text-anchor="middle" font-size="62" font-weight="900" fill="#fff" font-family="sans-serif">P</text>
+        </svg>
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <rect x="22" y="8" width="56" height="84" rx="4" fill="rgba(255,214,10,0.25)" stroke="#ffd60a" stroke-width="7"/>
+          <rect x="34" y="24" width="32" height="52" rx="8" fill="#ef233c"/>
+          <rect x="38" y="34" width="24" height="12" rx="3" fill="#a8dadc"/>
+        </svg>
+      </div>
+    </div>
+
     <button id="btn-izq" class="boton solo-botones" aria-label="Izquierda">
       <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M64 18 L26 50 L64 82 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg>
     </button>
@@ -59,14 +89,69 @@
     <div id="aviso-choque" hidden><span class="carita" aria-hidden="true">🤕</span>¡Cuidado, me dolió!</div>
   </div>
 
-  <!-- Pantalla de inicio -->
+  <!-- Menú: dos pantallas con dos opciones enormes cada una -->
   <div id="inicio">
-    <!-- Mientras carga se ve el círculo girando; el ▶ aparece cuando el juego ya está listo. -->
+    <!-- Mientras carga se ve el círculo girando; las opciones aparecen cuando el juego ya está listo. -->
     <div id="cargando" aria-label="Cargando"></div>
-    <button id="btn-jugar" class="boton" aria-label="Jugar" hidden>
-      <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M36 22 L78 50 L36 78 Z" fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round"/></svg>
+
+    <div id="elegir-vehiculo" class="opciones" hidden>
+      <button class="opcion" data-vehiculo="moto" aria-label="Moto">
+        <svg viewBox="0 0 200 140" aria-hidden="true">
+          <circle cx="48" cy="102" r="24" fill="none" stroke="#222" stroke-width="11"/>
+          <circle cx="48" cy="102" r="6" fill="#999"/>
+          <circle cx="156" cy="102" r="24" fill="none" stroke="#222" stroke-width="11"/>
+          <circle cx="156" cy="102" r="6" fill="#999"/>
+          <path d="M48 102 L82 80 L128 80 L156 102" fill="none" stroke="#8d99ae" stroke-width="8" stroke-linejoin="round"/>
+          <path d="M156 102 L138 50" stroke="#8d99ae" stroke-width="7" stroke-linecap="round"/>
+          <path d="M84 70 Q110 54 138 66 L132 84 L90 84 Z" fill="#1d7ff2" stroke="#0b4fa8" stroke-width="4" stroke-linejoin="round"/>
+          <rect x="56" y="64" width="40" height="11" rx="5" fill="#2b2d42"/>
+          <path d="M80 68 L76 94" stroke="#3d405b" stroke-width="13" stroke-linecap="round"/>
+          <path d="M78 64 L96 32" stroke="#06d6a0" stroke-width="20" stroke-linecap="round"/>
+          <path d="M96 38 L134 48" stroke="#06d6a0" stroke-width="10" stroke-linecap="round"/>
+          <path d="M130 47 L146 44" stroke="#2b2d42" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="102" cy="20" r="15" fill="#ffd60a" stroke="#b08900" stroke-width="3"/>
+          <path d="M106 15 L118 17 L117 25 L106 24 Z" fill="#2b2d42"/>
+          <rect x="146" y="58" width="10" height="9" rx="2" fill="#ffd166"/>
+        </svg>
+      </button>
+      <button class="opcion" data-vehiculo="carro" aria-label="Carro">
+        <svg viewBox="0 0 200 140" aria-hidden="true">
+          <path d="M16 98 L16 80 Q16 70 28 68 L58 64 L76 38 Q80 32 88 32 L128 32 Q136 32 141 38 L160 64 L176 68 Q186 71 186 82 L186 98 Z" fill="#ef233c" stroke="#9d0208" stroke-width="5" stroke-linejoin="round"/>
+          <path d="M84 42 L72 62 L104 62 L104 42 Z" fill="#a8dadc"/>
+          <path d="M112 42 L112 62 L150 62 L136 42 Z" fill="#a8dadc"/>
+          <rect x="172" y="74" width="12" height="8" rx="2" fill="#ffd166"/>
+          <circle cx="56" cy="100" r="19" fill="#222"/><circle cx="56" cy="100" r="8" fill="#ddd"/>
+          <circle cx="150" cy="100" r="19" fill="#222"/><circle cx="150" cy="100" r="8" fill="#ddd"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="elegir-modo" class="opciones" hidden>
+      <button class="opcion" data-jugar="paseo" aria-label="Pasear">
+        <svg viewBox="0 0 200 140" aria-hidden="true">
+          <circle cx="160" cy="32" r="18" fill="#ffd60a"/>
+          <path d="M0 96 Q50 60 100 90 Q150 118 200 84 L200 140 L0 140 Z" fill="#74c95a"/>
+          <path d="M70 140 Q90 110 120 104 Q150 98 160 86" fill="none" stroke="#5c6370" stroke-width="16" stroke-linecap="round"/>
+          <path d="M70 140 Q90 110 120 104 Q150 98 160 86" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="7 7"/>
+          <rect x="38" y="72" width="8" height="22" fill="#8b5a2b"/>
+          <circle cx="42" cy="62" r="18" fill="#2d6a4f"/>
+        </svg>
+      </button>
+      <button class="opcion" data-jugar="retos" aria-label="Retos">
+        <svg viewBox="0 0 200 140" aria-hidden="true">
+          <path d="M100 15 L113.5 51.4 L152.3 53 L121.9 77.1 L132.3 114.5 L100 93 L67.7 114.5 L78.1 77.1 L47.7 53 L86.5 51.4 Z" fill="#ffd60a" stroke="#b08900" stroke-width="5" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <button id="btn-volver" class="boton" aria-label="Inicio" hidden>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M50 14 L90 50 H78 V86 H58 V64 H42 V86 H22 V50 H10 Z" fill="#e63946" stroke="#7a1c24" stroke-width="5" stroke-linejoin="round"/>
+      </svg>
     </button>
   </div>
+
+  <div id="confeti" aria-hidden="true"></div>
 
   <!-- Aviso para girar el iPad (solo aparece en vertical) -->
   <div id="girar" aria-label="Gira tu iPad">

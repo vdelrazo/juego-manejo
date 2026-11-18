@@ -18,7 +18,7 @@ El juego queda con su propio ícono y se abre en pantalla completa.
 python -m http.server 8000
 ```
 
-y abrir http://localhost:8000. Se maneja con las flechas (o W A D) y la barra espaciadora.
+y abrir http://localhost:8000. Se maneja con las flechas (o W A S D) y la barra espaciadora; flecha abajo o S es reversa.
 La inclinación y el sonido de iOS solo se pueden probar en el iPad.
 
 Agregando `?depurar` a la dirección se ven los fps y lo que lee el sensor de inclinación.

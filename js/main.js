@@ -1,9 +1,11 @@
-// Arranque del juego: escena, cámara, pantallas y el ciclo de cada cuadro.
+// Arranque del juego: escena, cámara, pantallas (elegir vehículo → elegir modo → jugar)
+// y el ciclo de cada cuadro.
 
 import * as THREE from '../vendor/three/three.module.js';
 import { crearCiudad } from './ciudad.js';
 import { Vehiculo } from './vehiculo.js';
 import { Controles, alTocar } from './controles.js';
+import { Retos } from './retos.js';
 import * as sonido from './sonido.js';
 
 const $ = (id) => document.getElementById(id);
@@ -20,9 +22,21 @@ const camara = new THREE.PerspectiveCamera(60, 1, 0.3, 500);
 const ciudad = crearCiudad(escena);
 const SALIDA = ciudad.salida;
 
-const carro = new Vehiculo();
-escena.add(carro.objeto);
-carro.colocar(SALIDA.x, SALIDA.z, SALIDA.rumbo);
+// Los dos vehículos se arman al principio; en la escena solo está el elegido.
+const vehiculos = { carro: new Vehiculo('carro'), moto: new Vehiculo('moto') };
+let vehiculo = vehiculos.carro;
+escena.add(vehiculo.objeto);
+vehiculo.colocar(SALIDA.x, SALIDA.z, SALIDA.rumbo);
+
+function ponerVehiculo(tipo) {
+  if (vehiculos[tipo] === vehiculo) return;
+  escena.remove(vehiculo.objeto);
+  vehiculo = vehiculos[tipo];
+  escena.add(vehiculo.objeto);
+  vehiculo.colocar(SALIDA.x, SALIDA.z, SALIDA.rumbo);
+  sonido.ponerVehiculo(tipo);
+  saltarCamara = true;
+}
 
 function ajustarTamano() {
   const ancho = window.innerWidth;
@@ -69,7 +83,7 @@ let ultimoBoing = -10;
 let ultimoAviso = -10;
 let ocultarAviso = 0;
 
-carro.alChocar = () => {
+function alChocar() {
   const ahora = performance.now() / 1000;
   if (ahora - ultimoBoing > 0.4) {
     sonido.sonidoChoque();
@@ -85,7 +99,56 @@ carro.alChocar = () => {
     clearTimeout(ocultarAviso);
     ocultarAviso = setTimeout(() => { avisoChoque.hidden = true; }, 1800);
   }
-};
+}
+for (const v of Object.values(vehiculos)) v.alChocar = alChocar;
+
+// ---------- Retos ----------
+
+const panelReto = $('reto');
+const ranuras = [];
+for (let i = 0; i < 6; i++) {
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('viewBox', '0 0 100 100');
+  s.classList.add('ranura');
+  s.innerHTML = '<path d="M50 6 L61.2 36.6 L93.7 37.8 L68.1 57.9 L77 89.2 L50 71 L23 89.2 L31.9 57.9 L6.3 37.8 L38.8 36.6 Z"/>';
+  $('reto-estrellas').appendChild(s);
+  ranuras.push(s);
+}
+
+const COLORES_CONFETI = ['#ef476f', '#ffd166', '#06d6a0', '#4ea8de', '#b388eb', '#f78c6b'];
+function confeti() {
+  const capa = $('confeti');
+  capa.replaceChildren();
+  for (let i = 0; i < 80; i++) {
+    const p = document.createElement('i');
+    p.style.left = `${Math.random() * 100}vw`;
+    p.style.background = COLORES_CONFETI[i % COLORES_CONFETI.length];
+    p.style.animationDuration = `${1.8 + Math.random() * 1.4}s`;
+    p.style.animationDelay = `${Math.random() * 0.5}s`;
+    p.style.setProperty('--deriva', `${(Math.random() - 0.5) * 30}vw`);
+    p.style.setProperty('--giro', `${(Math.random() - 0.5) * 1440}deg`);
+    capa.appendChild(p);
+  }
+  setTimeout(() => capa.replaceChildren(), 3800);
+}
+
+const retos = new Retos(escena, ciudad, {
+  decir: sonido.decir,
+  estrella: sonido.sonidoEstrella,
+  festejo() {
+    sonido.sonidoFestejo();
+    confeti();
+  },
+  mostrar(tipo, datos) {
+    panelReto.hidden = false;
+    panelReto.dataset.tipo = tipo;
+    if (tipo === 'estrellas') ranuras.forEach((r, i) => r.classList.toggle('llena', i < datos.juntadas));
+    if (tipo === 'paquete') $('casa-destino').setAttribute('fill', `#${datos.hex.toString(16).padStart(6, '0')}`);
+  },
+  ocultar() {
+    panelReto.hidden = true;
+  },
+});
 
 // ---------- Pantallas ----------
 
@@ -93,28 +156,60 @@ let jugando = false;
 let saltarCamara = true;
 const vertical = matchMedia('(orientation: portrait)');
 
-// ▶ usa "click" a propósito: es el evento que iOS acepta para pedir el permiso
-// de inclinación, activar el audio y la voz. Las tres cosas tienen que pasar aquí.
-$('btn-jugar').addEventListener('click', () => {
-  controles.pedirPermisoInclinacion();
-  sonido.iniciarAudio();
-  sonido.decir('¡Vámonos!');
-  carro.colocar(SALIDA.x, SALIDA.z, SALIDA.rumbo);
-  saltarCamara = true;
-  jugando = true;
-  $('inicio').hidden = true;
-  hud.hidden = false;
-});
+function mostrarPantalla(pantalla) {
+  jugando = pantalla === 'juego';
+  $('inicio').hidden = jugando;
+  $('elegir-vehiculo').hidden = pantalla !== 'vehiculo';
+  $('elegir-modo').hidden = pantalla !== 'modo';
+  $('btn-volver').hidden = pantalla !== 'modo';
+  hud.hidden = !jugando;
+}
 
-alTocar($('btn-casa'), () => {
-  jugando = false;
+function volverAlInicio() {
+  retos.detener(vehiculo);
   controles.soltarTodo();
-  carro.colocar(SALIDA.x, SALIDA.z, SALIDA.rumbo);
+  vehiculo.colocar(SALIDA.x, SALIDA.z, SALIDA.rumbo);
   saltarCamara = true;
-  hud.hidden = true;
   avisoChoque.hidden = true;
-  $('inicio').hidden = false;
-});
+  motorApagado = false;
+  mostrarPantalla('vehiculo');
+  sonido.decir('¿Con qué quieres manejar?');
+}
+
+// Elegir vehículo. Usa "click" a propósito: es el evento que iOS acepta para pedir
+// el permiso de inclinación y activar el audio y la voz. Las tres cosas pasan aquí.
+for (const boton of document.querySelectorAll('[data-vehiculo]')) {
+  boton.addEventListener('click', () => {
+    controles.pedirPermisoInclinacion();
+    sonido.iniciarAudio();
+    const tipo = boton.dataset.vehiculo;
+    ponerVehiculo(tipo);
+    sonido.decir(`¡${tipo === 'moto' ? 'La moto' : 'El carro'}! ¿Quieres pasear o jugar retos?`);
+    mostrarPantalla('modo');
+  });
+}
+
+// Elegir modo (pasear o retos).
+for (const boton of document.querySelectorAll('[data-jugar]')) {
+  boton.addEventListener('click', () => {
+    sonido.iniciarAudio();
+    vehiculo.colocar(SALIDA.x, SALIDA.z, SALIDA.rumbo);
+    saltarCamara = true;
+    motorApagado = false;
+    avisoChoque.hidden = true;
+    mostrarPantalla('juego');
+    if (boton.dataset.jugar === 'retos') {
+      retos.reiniciar();
+      retos.empezar(vehiculo);
+    } else {
+      retos.detener(vehiculo);
+      sonido.decir('¡A pasear!');
+    }
+  });
+}
+
+alTocar($('btn-volver'), volverAlInicio);
+alTocar($('btn-casa'), volverAlInicio);
 
 vertical.addEventListener('change', () => {
   if (!vertical.matches) return;
@@ -124,8 +219,6 @@ vertical.addEventListener('change', () => {
 
 // ---------- Cámara ----------
 
-const DISTANCIA_CAMARA = 8.5;
-const ALTURA_CAMARA = 4.3;
 const posicionDeseada = new THREE.Vector3();
 const miraDeseada = new THREE.Vector3();
 const mira = new THREE.Vector3();
@@ -135,7 +228,7 @@ let anguloVuelta = 0;
 // si un edificio estorba, se acerca y sube para ver por encima.
 // Devuelve qué tan lejos quedó, de 0 (encima del vehículo) a 1 (distancia normal).
 function colocarCamara(dx, dz, distancia, altura) {
-  const p = carro.posicion;
+  const p = vehiculo.posicion;
   const libre = ciudad.obstaculos.libre(p.x, p.z, p.x + dx * distancia, p.z + dz * distancia);
   const d = libre < 1 ? Math.max(2.2, libre * distancia - 0.8) : distancia;
   posicionDeseada.set(p.x + dx * d, p.y + altura + (distancia - d) * 0.45, p.z + dz * d);
@@ -143,18 +236,19 @@ function colocarCamara(dx, dz, distancia, altura) {
 }
 
 function moverCamara(dt) {
-  const p = carro.posicion;
+  const p = vehiculo.posicion;
+  const c = vehiculo.camara;
   if (jugando) {
     // Detrás del vehículo y un poco arriba, viendo un poco hacia adelante
     // (menos hacia adelante si la cámara tuvo que acercarse).
-    const lejos = colocarCamara(-carro.adelante.x, -carro.adelante.z, DISTANCIA_CAMARA, ALTURA_CAMARA);
-    miraDeseada.copy(p).addScaledVector(carro.adelante, 4 * lejos * lejos);
-    miraDeseada.y = p.y + 1.2;
+    const lejos = colocarCamara(-vehiculo.adelante.x, -vehiculo.adelante.z, c.distancia, c.altura);
+    miraDeseada.copy(p).addScaledVector(vehiculo.adelante, 4 * lejos * lejos);
+    miraDeseada.y = p.y + c.mira;
   } else {
-    // En la pantalla de inicio la cámara le da vueltas; mirar un poco abajo deja el carro arriba del ▶.
+    // En el menú la cámara le da vueltas; mirar un poco abajo deja el vehículo arriba de las opciones.
     anguloVuelta += dt * 0.25;
-    colocarCamara(Math.sin(anguloVuelta), Math.cos(anguloVuelta), 10, 4.5);
-    miraDeseada.set(p.x, p.y - 0.5, p.z);
+    colocarCamara(Math.sin(anguloVuelta), Math.cos(anguloVuelta), c.vuelta, c.altura * 0.9);
+    miraDeseada.set(p.x, p.y - 1.2, p.z);
   }
 
   if (saltarCamara) {
@@ -167,6 +261,27 @@ function moverCamara(dt) {
     mira.lerp(miraDeseada, k);
   }
   camara.lookAt(mira);
+}
+
+// ---------- Motor: se apaga al quedarse quieto dentro de un cajón ----------
+
+let motorApagado = false;
+let tiempoQuieto = 0;
+const estadoCajon = { cajon: null, estacionado: false };
+
+function revisarMotor(dt, mando) {
+  const pedal = mando.acelerar || mando.reversa;
+  const cajon = jugando ? ciudad.cajonDe(vehiculo) : null;
+  if (cajon && !pedal && Math.abs(vehiculo.velocidad) < 0.25) tiempoQuieto += dt;
+  else tiempoQuieto = 0;
+
+  if (!motorApagado && tiempoQuieto > 0.6) motorApagado = true;
+  if (motorApagado && pedal) {
+    motorApagado = false;
+    sonido.sonidoArranque();
+  }
+  estadoCajon.cajon = cajon;
+  estadoCajon.estacionado = motorApagado;
 }
 
 // ---------- Datos para revisar en el iPad: agregar ?depurar a la dirección ----------
@@ -186,9 +301,9 @@ function mostrarDepuracion(dt) {
   desdeUltimoConteo = 0;
   const c = controles;
   depurar.textContent =
-    `${fps} fps · vel ${carro.velocidad.toFixed(1)} · modo ${c.modo} · permiso ${c.permiso} · sensor ${c.hayDatos ? 'sí' : 'no'}\n` +
-    `giro ${c.giroInclinacion.toFixed(2)} · lado ${c.lecturaCruda.lado.toFixed(1)} · ` +
-    `vertical ${c.lecturaCruda.vertical.toFixed(1)} · signo ${c.signo}`;
+    `${fps} fps · vel ${vehiculo.velocidad.toFixed(1)} · ${retos.tipo ?? 'paseo'} · motor ${motorApagado ? 'apagado' : 'prendido'}\n` +
+    `modo ${c.modo} · permiso ${c.permiso} · sensor ${c.hayDatos ? 'sí' : 'no'} · giro ${c.giroInclinacion.toFixed(2)} · ` +
+    `lado ${c.lecturaCruda.lado.toFixed(1)} · vertical ${c.lecturaCruda.vertical.toFixed(1)} · signo ${c.signo}`;
 }
 
 // ---------- Ciclo de cada cuadro ----------
@@ -202,13 +317,16 @@ renderer.setAnimationLoop((ahora) => {
   antes = ahora;
 
   const manejando = jugando && !vertical.matches;
-  carro.actualizar(dt, manejando ? controles.leer() : QUIETO, ciudad);
+  const mando = manejando ? controles.leer() : QUIETO;
+  vehiculo.actualizar(dt, mando, ciudad);
+  revisarMotor(dt, mando);
+  retos.actualizar(dt, vehiculo, estadoCajon);
   moverCamara(dt);
-  ciudad.seguir(carro.posicion);
-  sonido.actualizarMotor(Math.abs(carro.fraccionVelocidad), jugando);
+  ciudad.seguir(vehiculo.posicion);
+  sonido.actualizarMotor(Math.abs(vehiculo.fraccionVelocidad), jugando && !motorApagado, mando.acelerar || mando.reversa);
 
   // "Pi-pi-pi" mientras va de reversa.
-  if (jugando && carro.velocidad < -0.3) {
+  if (jugando && vehiculo.velocidad < -0.3) {
     if (ahora >= siguientePitido) {
       sonido.pitidoReversa();
       siguientePitido = ahora + 600;
@@ -223,9 +341,15 @@ renderer.setAnimationLoop((ahora) => {
 
 // Para revisar el estado desde la consola o en pruebas automáticas.
 if (depurar) {
-  window.__juego = { carro, controles, ciudad, camara, escena, renderer, get jugando() { return jugando; } };
+  window.__juego = {
+    get vehiculo() { return vehiculo; },
+    get carro() { return vehiculo; },
+    get jugando() { return jugando; },
+    get motorApagado() { return motorApagado; },
+    controles, ciudad, retos, camara, escena, renderer,
+  };
 }
 
-// Todo listo: ya se puede jugar.
+// Todo listo: ya se puede elegir.
 $('cargando').hidden = true;
-$('btn-jugar').hidden = false;
+mostrarPantalla('vehiculo');

@@ -32,46 +32,47 @@ document.addEventListener('visibilitychange', () => {
   else ctx.resume().catch(() => {});
 });
 
-// ---------- Motor: un "brum" grave que sube con la velocidad ----------
+// ---------- Motor: un zumbido suave y redondo, como de carrito de juguete ----------
 
 function crearMotor(ctx) {
   const salida = ctx.createGain();
   salida.gain.value = 0;
   salida.connect(ctx.destination);
 
-  // Tremolo: hace que suene "brum-brum-brum" en vez de un zumbido parejo.
-  const tremolo = ctx.createGain();
-  tremolo.gain.value = 0.7;
-  tremolo.connect(salida);
+  // Un vaivén leve para que no suene como un tono plano.
+  const vaiven = ctx.createGain();
+  vaiven.gain.value = 0.88;
+  vaiven.connect(salida);
 
   const filtro = ctx.createBiquadFilter();
   filtro.type = 'lowpass';
-  filtro.frequency.value = 450;
-  filtro.Q.value = 2;
-  filtro.connect(tremolo);
+  filtro.frequency.value = 700;
+  filtro.Q.value = 0.5;
+  filtro.connect(vaiven);
 
+  // Onda triangular (suave) más un armónico senoidal bajito.
   const grave = ctx.createOscillator();
-  grave.type = 'sawtooth';
-  grave.frequency.value = 55;
+  grave.type = 'triangle';
+  grave.frequency.value = 85;
   grave.connect(filtro);
 
-  const sub = ctx.createOscillator();
-  sub.type = 'square';
-  sub.frequency.value = 27.5;
-  const volumenSub = ctx.createGain();
-  volumenSub.gain.value = 0.45;
-  sub.connect(volumenSub).connect(filtro);
+  const armonico = ctx.createOscillator();
+  armonico.type = 'sine';
+  armonico.frequency.value = 170;
+  const volumenArmonico = ctx.createGain();
+  volumenArmonico.gain.value = 0.25;
+  armonico.connect(volumenArmonico).connect(filtro);
 
   const pulso = ctx.createOscillator();
-  pulso.frequency.value = 9;
+  pulso.frequency.value = 7;
   const fuerzaPulso = ctx.createGain();
-  fuerzaPulso.gain.value = 0.3;
-  pulso.connect(fuerzaPulso).connect(tremolo.gain);
+  fuerzaPulso.gain.value = 0.12;
+  pulso.connect(fuerzaPulso).connect(vaiven.gain);
 
   grave.start();
-  sub.start();
+  armonico.start();
   pulso.start();
-  return { salida, filtro, grave, sub, pulso };
+  return { salida, filtro, grave, armonico, pulso };
 }
 
 let ultimaFraccion = -1;
@@ -85,12 +86,12 @@ export function actualizarMotor(fraccion, encendido) {
   ultimoEncendido = encendido;
 
   const t = ctx.currentTime;
-  const tono = 55 + 75 * fraccion;
-  motor.grave.frequency.setTargetAtTime(tono, t, 0.08);
-  motor.sub.frequency.setTargetAtTime(tono / 2, t, 0.08);
-  motor.pulso.frequency.setTargetAtTime(9 + 14 * fraccion, t, 0.08);
-  motor.filtro.frequency.setTargetAtTime(450 + 900 * fraccion, t, 0.08);
-  motor.salida.gain.setTargetAtTime(encendido ? 0.06 + 0.08 * fraccion : 0, t, 0.15);
+  const tono = 85 + 85 * fraccion;
+  motor.grave.frequency.setTargetAtTime(tono, t, 0.1);
+  motor.armonico.frequency.setTargetAtTime(tono * 2, t, 0.1);
+  motor.pulso.frequency.setTargetAtTime(7 + 9 * fraccion, t, 0.1);
+  motor.filtro.frequency.setTargetAtTime(700 + 700 * fraccion, t, 0.1);
+  motor.salida.gain.setTargetAtTime(encendido ? 0.04 + 0.05 * fraccion : 0, t, 0.2);
 }
 
 // ---------- Efectos cortos ----------
@@ -112,6 +113,32 @@ function pitido(desde, hasta, duracion, tipo = 'sine', volumen = 0.22) {
 
 export const sonidoSi = () => pitido(520, 880, 0.14);
 export const sonidoNo = () => pitido(300, 150, 0.3, 'triangle', 0.3);
+export const pitidoReversa = () => pitido(1050, 1000, 0.13, 'sine', 0.06);
+
+// Choque: un "boing" de caricatura más un "toc" grave.
+export function sonidoChoque() {
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(520, t);
+  osc.frequency.exponentialRampToValueAtTime(140, t + 0.45);
+  const temblor = ctx.createOscillator();
+  temblor.frequency.value = 22;
+  const fuerzaTemblor = ctx.createGain();
+  fuerzaTemblor.gain.value = 35;
+  temblor.connect(fuerzaTemblor).connect(osc.frequency);
+  const vol = ctx.createGain();
+  vol.gain.setValueAtTime(0.0001, t);
+  vol.gain.linearRampToValueAtTime(0.28, t + 0.015);
+  vol.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+  osc.connect(vol).connect(ctx.destination);
+  osc.start(t);
+  temblor.start(t);
+  osc.stop(t + 0.55);
+  temblor.stop(t + 0.55);
+  pitido(160, 60, 0.15, 'sine', 0.3);
+}
 
 // ---------- Voz ----------
 

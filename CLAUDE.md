@@ -22,32 +22,51 @@ actualízala aquí.
 - Botones grandes (80 px o más) y separados entre sí.
 - Pocos menús, sin submenús. Desde cualquier pantalla se regresa al inicio con un toque.
 
-### Inicio de partida
-1. **Elegir vehículo:** moto, carro y quizá un camión de bomberos (2 o 3 opciones).
-   Todos se manejan con la misma lógica; solo cambia el modelo y el sonido.
-2. **Elegir modo:**
-   - **Paseo libre:** recorrer el pueblito sin objetivos.
-   - **Misiones sencillas:** recoger estrellas, llevar un paquete a "la casa azul", etc.
-     Una flecha grande y la voz guían hacia el objetivo.
+### Inicio de partida (aprobado 2026-11-17, falta hacerlo: es la fase 3)
+Dos pantallas, cada una con dos opciones enormes y la voz que pregunta. Ya no hay ▶:
+el primer toque (al elegir vehículo) activa el sonido y el permiso de inclinación.
+🏠 regresa a la primera pantalla.
+1. **Elegir vehículo:** moto o carro. El camión de bomberos queda para después.
+   Se manejan con la misma lógica; la moto se inclina más en las curvas y suena un poco más agudo.
+2. **Elegir modo:** "¿Quieres pasear o jugar retos?"
+   - **Paseo libre:** recorrer la ciudad sin objetivos.
+   - **Retos:** una flecha grande sobre el vehículo y la voz guían hacia el objetivo. Los primeros dos, alternados:
+     - **Estrellas:** 6 estrellas en las calles; al juntarlas todas, festejo con confeti y voz.
+     - **Paquete:** "Lleva el paquete a la casa azul" (el color cambia: azul, roja, amarilla, verde).
+       Al llegar, festejo. De paso se practican los colores.
 
 ### Mundo
-- 3D sencillo y colorido (*low-poly*), con la cámara detrás del vehículo.
-- Un pueblito pequeño: calles, casas de colores, árboles y un parque.
+- 3D sencillo y colorido (*low-poly*), con la cámara detrás del vehículo. Si un edificio le tapa
+  la vista, la cámara se acerca y sube.
+- **Una ciudad** (cambiado 2026-11-17; antes era un pueblito): 5 × 5 manzanas con calles anchas
+  (12 m), edificios de colores de 2 a 8 pisos con ventanas y puertas con toldo, banquetas,
+  pasos de cebra, árboles y un parque con fuente en el centro. La orilla está cerrada por
+  edificios. Siempre sale igual (números al azar con semilla fija).
 - **Semáforos y señales de alto:** si el niño se detiene en rojo, gana estrellas extra.
   Pasarse el alto no castiga; solo se pierde la estrella.
 
 ### Choques: nunca se pierde
 - No hay "game over" ni vidas.
-- Al chocar, el vehículo rebota suavemente, suena algo chistoso y aparece el mensaje
-  **"¡Cuidado, me dolió!"**, también dicho en voz alta.
+- Al chocar, el vehículo rebota suavemente, suena algo chistoso ("boing") y aparece el mensaje
+  **"¡Cuidado, me dolió!"**, también dicho en voz alta. Le salen estrellitas de mareo.
+- Solo cuenta como choque si iba a más de 2 m/s contra algo; empujar despacio una pared no.
+  El mensaje y la voz no se repiten antes de 3 segundos.
 
 ### Controles
-- **Modo inclinar:** se gira inclinando el iPad como volante, con un botón grande para acelerar.
-- **Modo botones:** botones en pantalla para izquierda, derecha y acelerar.
-- **Se cambia de modo en plena partida** con un botón siempre visible, sin pausar ni salir.
-- Al soltar el acelerador, el vehículo frena solo poco a poco.
-- **Sin reversa** (decidido 2026-11-17): para dar la vuelta se gira en U.
+- **Modo inclinar:** se gira inclinando el iPad como volante.
+- **Modo botones:** botones en pantalla para izquierda y derecha.
+- **Pedales en los dos modos:** el verde ▲ avanza; el azul ▼ (más chico, a su izquierda) va de reversa.
+- **Se cambia de modo en plena partida** con un botón siempre visible, sin pausar ni salir
+  y sin soltar los pedales.
+- Al soltar el pedal, el vehículo frena solo poco a poco.
+- **Con reversa** (cambiado 2026-11-17; antes era sin reversa): va al 40 % de la velocidad,
+  suena "pi-pi-pi" y gira como un carro de verdad. Si va hacia adelante y se aprieta ▼,
+  primero frena y luego retrocede (y al revés).
 - **Se puede girar estando parado, pero despacio**, para que nunca se quede atorado de frente a algo.
+
+### Sonido
+- Motor: zumbido suave y redondo, como de carrito de juguete (cambiado 2026-11-17: el primero
+  se oía áspero).
 
 ### Jugadores
 - Un jugador; cada quien juega en su propio iPad.
@@ -76,12 +95,29 @@ actualízala aquí.
 
 1. **Prototipo:** un carro sobre terreno plano, cámara detrás, controles de botones e inclinación, y cambio de control en plena partida.
    *Hecha el 2026-11-17; falta probarla en el iPad.*
-2. **Pueblito y choques:** calles, casas y árboles; choques con rebote, sonido y "¡Cuidado, me dolió!".
-3. **Menú de inicio:** elegir vehículo (2 o 3) y modo (paseo libre o misiones).
-4. **Misiones y semáforos:** estrellas, entregas, flecha guía y estrellas extra por respetar el rojo.
+2. **Ciudad, reversa y choques:** calles, edificios y árboles; reversa; choques con rebote, sonido y "¡Cuidado, me dolió!"; motor más suave.
+   *Hecha el 2026-11-17; falta probarla en el iPad.*
+3. **Menú de inicio:** elegir vehículo (moto o carro) y modo (paseo libre o retos). **Es lo siguiente.**
+4. **Retos y semáforos:** estrellas y paquete a la casa de color con flecha guía; después,
+   semáforos con estrellas extra por respetar el rojo.
 5. **Instalable y pulido:** PWA sin internet, ícono, música, voces y ajustes de rendimiento.
 
 ## Preguntas abiertas
 
 - Confirmar el modelo exacto de los iPads.
-- Lista concreta de misiones para la fase 4.
+- Más retos, después de estrellas y paquete.
+
+### Pendiente de probar en el iPad (fases 1 y 2)
+
+Abrir https://vdelrazo.github.io/juego-manejo/?depurar y revisar:
+
+1. ¿Sale la ventana de permiso al tocar ▶? ¿Vuelve a preguntar cada vez que se abre el juego?
+2. Al inclinar a la derecha, ¿el carro va a la derecha?
+3. ¿La sensibilidad está bien? (giro completo con 25° de inclinación)
+4. ¿Se oyen el motor y la voz? ¿La voz suena con acento mexicano?
+5. ¿Las flechas y los pedales funcionan bien con dos dedos?
+6. ¿Cuántos fps marca? (la ciudad tiene unos 41 000 triángulos)
+7. ¿La velocidad se siente bien para un niño de 3 a 5 años?
+8. ¿El pedal de reversa está en un buen lugar? ¿El "pi-pi-pi" molesta?
+9. ¿El choque se siente bien (rebote, "boing", mensaje)? ¿O se repite demasiado?
+10. ¿El motor nuevo ya suena suave?

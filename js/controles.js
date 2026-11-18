@@ -1,5 +1,6 @@
 // Controles: modo botones y modo inclinar, y el interruptor para cambiar en plena partida.
-// En la computadora también funcionan las flechas o W A D (y espacio para acelerar).
+// Los dos pedales (avanzar y reversa) se ven en los dos modos.
+// En la computadora también funcionan las flechas o W A S D (y espacio para avanzar).
 //
 // Inclinar: se lee la gravedad (devicemotion). Del vector de gravedad se toma la parte
 // que cae "de lado" en la pantalla; eso dice cuánto está girado el iPad como volante.
@@ -16,6 +17,7 @@ const TECLAS = {
   ArrowLeft: 'izq', KeyA: 'izq',
   ArrowRight: 'der', KeyD: 'der',
   ArrowUp: 'acelerar', KeyW: 'acelerar', Space: 'acelerar',
+  ArrowDown: 'reversa', KeyS: 'reversa',
 };
 
 // Botón que cuenta mientras se mantiene apretado (con uno o varios dedos).
@@ -64,7 +66,7 @@ export function alTocar(el, accion) {
 }
 
 export class Controles {
-  constructor({ hud, btnIzq, btnDer, btnAcelerar, btnModo, alCambiarModo, alNoPoderInclinar }) {
+  constructor({ hud, btnIzq, btnDer, btnAcelerar, btnReversa, btnModo, alCambiarModo, alNoPoderInclinar }) {
     this.hud = hud;
     this.alCambiarModo = alCambiarModo;
     this.alNoPoderInclinar = alNoPoderInclinar;
@@ -79,12 +81,14 @@ export class Controles {
     this.izq = false;
     this.der = false;
     this.pedal = false;
+    this.pedalReversa = false;
     this.teclas = new Set();
-    this.mando = { giro: 0, acelerar: false };
+    this.mando = { giro: 0, acelerar: false, reversa: false };
 
     this.soltarIzq = botonSostenido(btnIzq, (v) => { this.izq = v; });
     this.soltarDer = botonSostenido(btnDer, (v) => { this.der = v; });
     this.soltarPedal = botonSostenido(btnAcelerar, (v) => { this.pedal = v; });
+    this.soltarReversa = botonSostenido(btnReversa, (v) => { this.pedalReversa = v; });
     alTocar(btnModo, () => this.alTocarModo());
 
     addEventListener('keydown', (e) => {
@@ -110,6 +114,7 @@ export class Controles {
     if (giroTeclas !== 0) giro = giroTeclas;
     this.mando.giro = giro;
     this.mando.acelerar = this.pedal || this.teclas.has('acelerar');
+    this.mando.reversa = this.pedalReversa || this.teclas.has('reversa');
     return this.mando;
   }
 
@@ -117,6 +122,7 @@ export class Controles {
     this.soltarIzq();
     this.soltarDer();
     this.soltarPedal();
+    this.soltarReversa();
     this.teclas.clear();
   }
 
@@ -207,7 +213,7 @@ export class Controles {
   ponerModo(modo) {
     if (modo === this.modo) return;
     this.modo = modo;
-    // Se sueltan las flechas (desaparecen), pero no el pedal: se cambia sin dejar de avanzar.
+    // Se sueltan las flechas (desaparecen), pero no los pedales: se cambia sin dejar de avanzar.
     this.soltarIzq();
     this.soltarDer();
     this.giroInclinacion = 0;

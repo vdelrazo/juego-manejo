@@ -45,6 +45,8 @@ const MANZANAS = Array.from({ length: N }, (_, i) => CALLES[i] + PASO / 2);
 
 // El estacionamiento ocupa la manzana al este del parque, junto a la calle de salida.
 const LOTE = { x: MANZANAS[3], z: MANZANAS[2] };
+// El taller está en la manzana que queda enfrente de la salida, con el portón hacia esa calle.
+const TALLER = { x: MANZANAS[3], z: MANZANAS[1] };
 const ANCHO_CAJON = 5;
 const LARGO_CAJON = 7;
 
@@ -439,6 +441,7 @@ export function crearCiudad(escena) {
     for (const bz of MANZANAS) {
       if (bx === 0 && bz === 0) continue;   // el parque
       if (bx === LOTE.x && bz === LOTE.z) continue;   // el estacionamiento
+      if (bx === TALLER.x && bz === TALLER.z) continue;   // el taller
       const tipo = elegir(['cuatro', 'cuatro', 'dos', 'uno']);
       if (tipo === 'cuatro') {
         // Cuatro edificios pegados a las esquinas; entre ellos queda un pasillo
@@ -575,6 +578,94 @@ export function crearCiudad(escena) {
     obstaculos.circulo(letrero.position.x, letrero.position.z, 0.25);
   }
 
+  // ---------- Taller ----------
+  // Edificio blanco con franja roja y un portón ancho hacia la calle de la salida (lado oeste).
+  // Adentro hay una bahía de 12 m de fondo: al entrar manejando se abre el taller.
+  const PUERTA_TALLER = { z0: TALLER.z - 4.5, z1: TALLER.z + 4.5, alto: 5 };
+  const BAHIA = TALLER.x - L + 12;             // hasta dónde llega la bahía hacia adentro
+  const zonaTaller = { x0: TALLER.x - L - 2, x1: BAHIA, z0: PUERTA_TALLER.z0 + 0.5, z1: PUERTA_TALLER.z1 - 0.5 };
+  {
+    const { x: bx, z: bz } = TALLER;
+    const t = trozo(bx, bz);
+    const blanco = color(0xf3f1ec), rojo = color(0xe63946), amarillo = color(0xffc300), gris = color(0xc9ced6);
+    const ALTO = 7.5;
+    const partes = [
+      [bx - L, bz - L, bx + L, PUERTA_TALLER.z0],
+      [bx - L, PUERTA_TALLER.z1, bx + L, bz + L],
+      [BAHIA, PUERTA_TALLER.z0, bx + L, PUERTA_TALLER.z1],
+    ];
+    for (const [x0, z0, x1, z1] of partes) {
+      t.estuco.caja(x0, 0, z0, x1, ALTO, z1, blanco, { sombraBase: 0.65 });
+      obstaculos.caja(x0, z0, x1, z1);
+      t.detalles.caja(x0 - 0.08, 4.9, z0 - 0.08, x1 + 0.08, 5.9, z1 + 0.08, rojo, { conPiso: true });   // franja roja
+      t.detalles.caja(x0 - 0.12, ALTO, z0 - 0.12, x1 + 0.12, ALTO + 0.4, z1 + 0.12, gris);            // pretil
+    }
+    // Dintel arriba del portón (techo de la bahía) y marco amarillo.
+    t.estuco.caja(bx - L, PUERTA_TALLER.alto, PUERTA_TALLER.z0, BAHIA, ALTO, PUERTA_TALLER.z1, blanco, { conPiso: true });
+    t.detalles.caja(bx - L - 0.15, PUERTA_TALLER.alto, PUERTA_TALLER.z0 - 0.3, bx - L + 0.15, PUERTA_TALLER.alto + 0.35, PUERTA_TALLER.z1 + 0.3, amarillo, { conPiso: true });
+    for (const z of [PUERTA_TALLER.z0, PUERTA_TALLER.z1]) {
+      t.detalles.caja(bx - L - 0.15, 0, z - 0.3, bx - L + 0.15, PUERTA_TALLER.alto, z + 0.3, amarillo);
+    }
+    // Piso de la bahía: claro, con borde amarillo.
+    t.detalles.caja(bx - L, ALTO_BANQUETA, PUERTA_TALLER.z0, BAHIA, ALTO_BANQUETA + 0.02, PUERTA_TALLER.z1, color(0xe9edf2));
+    for (const z of [PUERTA_TALLER.z0 + 0.3, PUERTA_TALLER.z1 - 0.3]) {
+      t.detalles.caja(bx - L, ALTO_BANQUETA + 0.02, z - 0.12, BAHIA, ALTO_BANQUETA + 0.03, z + 0.12, amarillo);
+    }
+    // Luz del techo de la bahía.
+    const lampara = new THREE.Mesh(
+      new THREE.PlaneGeometry(BAHIA - (bx - L) - 2, 2.5),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff6e0, emissiveIntensity: 1.2 }),
+    );
+    lampara.rotation.x = Math.PI / 2;
+    lampara.position.set((bx - L + BAHIA) / 2, PUERTA_TALLER.alto - 0.02, bz);
+    escena.add(lampara);
+
+    // Letrero con dibujos (llave y carro), arriba del portón, viendo hacia la calle.
+    const lienzo = document.createElement('canvas');
+    lienzo.width = 1024;
+    lienzo.height = 256;
+    const g = lienzo.getContext('2d');
+    g.fillStyle = '#1d4ed8';
+    g.beginPath();
+    g.roundRect(8, 8, 1008, 240, 60);
+    g.fill();
+    g.strokeStyle = '#ffffff';
+    g.lineWidth = 12;
+    g.stroke();
+    g.font = '170px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText('🔧', 180, 140);
+    g.fillText('🚗', 512, 140);
+    g.fillText('🎨', 844, 140);
+    const texLetrero = new THREE.CanvasTexture(lienzo);
+    texLetrero.colorSpace = THREE.SRGBColorSpace;
+    const letrero = new THREE.Mesh(new THREE.PlaneGeometry(9, 2.25), new THREE.MeshStandardMaterial({ map: texLetrero, roughness: 0.4, emissive: 0xffffff, emissiveMap: texLetrero, emissiveIntensity: 0.25 }));
+    letrero.position.set(bx - L - 0.2, 6.25, bz);
+    letrero.rotation.y = -Math.PI / 2;
+    escena.add(letrero);
+
+    // Flechas amarillas en el piso que llevan al portón.
+    const lienzoF = document.createElement('canvas');
+    lienzoF.width = lienzoF.height = 128;
+    const gf = lienzoF.getContext('2d');
+    gf.fillStyle = '#ffc300';
+    gf.beginPath();
+    gf.moveTo(16, 18); gf.lineTo(76, 64); gf.lineTo(16, 110); gf.lineTo(44, 110); gf.lineTo(104, 64); gf.lineTo(44, 18);
+    gf.closePath();
+    gf.fill();
+    const texFlecha = new THREE.CanvasTexture(lienzoF);
+    texFlecha.colorSpace = THREE.SRGBColorSpace;
+    const matFlecha = new THREE.MeshStandardMaterial({ map: texFlecha, transparent: true, depthWrite: false, roughness: 0.7 });
+    for (const x of [bx - L - 7, bx - L - 4.5, bx - L - 2]) {
+      const f = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), matFlecha);
+      f.rotation.x = -Math.PI / 2;
+      f.position.set(x, x > bx - L - 3 ? ALTO_BANQUETA + 0.015 : 0.015, bz);
+      f.receiveShadow = true;
+      escena.add(f);
+    }
+  }
+
   for (const t of trozos.values()) {
     const piezas = [[t.estuco, matParedEstuco, true], [t.ladrillo, matParedLadrillo, true], [t.detalles, matDetalle, true], [t.vidrios, matVidrio, false], [t.toldos, matToldo, true]];
     for (const [j, material, sombra] of piezas) if (j.pos.length) escena.add(j.malla(material, { sombra }));
@@ -619,6 +710,7 @@ export function crearCiudad(escena) {
         }
       }
       if (bx === LOTE.x && bz === LOTE.z) continue;
+      if (bx === TALLER.x && bz === TALLER.z) continue;
       hidrantes.push([bx + enOrilla * (azarDetalle() < 0.5 ? 1 : -1), bz + 4.5]);
       botes.push([bx - 4.5, bz + enOrilla * (azarDetalle() < 0.5 ? 1 : -1)]);
     }
@@ -697,6 +789,7 @@ export function crearCiudad(escena) {
     for (const bz of MANZANAS) {
       if (bx === 0 && bz === 0) continue;
       if (bx === LOTE.x && bz === LOTE.z) continue;
+      if (bx === TALLER.x && bz === TALLER.z) continue;
       const enBanqueta = MANZANA / 2 - BANQUETA / 2;
       for (const [ex, ez] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         if (azar() < 0.5) continue;
@@ -939,6 +1032,18 @@ export function crearCiudad(escena) {
     edificios,
     puntosCalle,
     cajones,
+
+    // ¿El vehículo está entrando al taller?
+    enTaller(x, z) {
+      return x > zonaTaller.x0 && x < zonaTaller.x1 && z > zonaTaller.z0 && z < zonaTaller.z1;
+    },
+    // Al salir del taller: frente al portón, en la calle, viendo hacia la calle.
+    salidaTaller: { x: TALLER.x - L - 6, z: TALLER.z, rumbo: -Math.PI / 2 },
+
+    // ¿Está en el pasto del parque? (ahí se ensucia más rápido)
+    esPasto(x, z) {
+      return Math.abs(x) < L && Math.abs(z) < L;
+    },
 
     // El cajón libre donde está el vehículo (sus dos círculos adentro), o null.
     cajonDe(vehiculo) {

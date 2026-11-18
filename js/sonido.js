@@ -158,6 +158,43 @@ export const sonidoSi = () => pitido(520, 880, 0.14);
 export const sonidoNo = () => pitido(300, 150, 0.3, 'triangle', 0.3);
 export const pitidoReversa = () => pitido(1050, 1000, 0.13, 'sine', 0.06);
 
+// Taller: "pssst" de pintura en aerosol (ruido filtrado).
+let bufferRuido = null;
+export function sonidoSpray() {
+  if (!ctx) return;
+  if (!bufferRuido) {
+    bufferRuido = ctx.createBuffer(1, ctx.sampleRate * 0.7, ctx.sampleRate);
+    const d = bufferRuido.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const t = ctx.currentTime;
+  const ruido = ctx.createBufferSource();
+  ruido.buffer = bufferRuido;
+  const filtro = ctx.createBiquadFilter();
+  filtro.type = 'bandpass';
+  filtro.frequency.value = 4200;
+  filtro.Q.value = 0.8;
+  const vol = ctx.createGain();
+  vol.gain.setValueAtTime(0.0001, t);
+  vol.gain.linearRampToValueAtTime(0.16, t + 0.05);
+  vol.gain.setValueAtTime(0.16, t + 0.45);
+  vol.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+  ruido.connect(filtro).connect(vol).connect(ctx.destination);
+  ruido.start(t);
+  ruido.stop(t + 0.7);
+}
+
+// Taller: burbujas ("blup-blup").
+export function sonidoBurbujas() {
+  for (let i = 0; i < 3; i++) {
+    const f = 380 + Math.random() * 500;
+    pitido(f, f * 1.8, 0.07, 'sine', 0.12, i * 0.06 + Math.random() * 0.03);
+  }
+}
+
+// Taller: "pop" al pegar una calcomanía.
+export const sonidoPegar = () => pitido(520, 1250, 0.09, 'triangle', 0.22);
+
 // Estrella: "ding-ding", más agudo con cada estrella juntada.
 export function sonidoEstrella(numero) {
   const base = 660 * Math.pow(2, (numero * 2) / 12);

@@ -7,6 +7,7 @@ import { crearCiudad } from './ciudad.js';
 import { Vehiculo } from './vehiculo.js';
 import { Controles, alTocar } from './controles.js';
 import { Retos } from './retos.js';
+import { crearTaller, COLORES_PINTURA, CALCOMANIAS } from './taller.js';
 import * as sonido from './sonido.js';
 
 const $ = (id) => document.getElementById(id);
@@ -140,6 +141,127 @@ const retos = new Retos(escena, ciudad, {
     panelReto.hidden = true;
   },
 });
+
+// ---------- Taller ----------
+// Se entra manejando por el portón del taller. Adentro: el vehículo en una plataforma que gira
+// y el panel con 🎨 pintura y 🧽 lavado. El botón verde regresa a manejar.
+
+const panelTaller = $('taller');
+let enTaller = false;
+let bloqueoTaller = false;   // al salir, no se vuelve a abrir hasta que el vehículo se aleje
+
+const taller = crearTaller(renderer, {
+  decir: sonido.decir,
+  sonidoBurbujas: sonido.sonidoBurbujas,
+  sonidoPegar: sonido.sonidoPegar,
+  festejoChico() {
+    sonido.sonidoFestejo();
+    confeti();
+  },
+});
+
+const contenedorBotes = panelTaller.querySelector('.botes');
+for (const c of COLORES_PINTURA) {
+  const b = document.createElement('button');
+  b.className = 'bote';
+  b.style.background = c.hex;
+  b.setAttribute('aria-label', c.nombre);
+  alTocar(b, () => {
+    taller.pintar(c.hex);
+    sonido.sonidoSpray();
+    sonido.decir('¡' + c.nombre[0].toUpperCase() + c.nombre.slice(1) + '!');
+  });
+  contenedorBotes.appendChild(b);
+}
+const contenedorCalcomanias = panelTaller.querySelector('.calcomanias');
+const botonesCalcomania = [];
+for (const e of [...CALCOMANIAS, '🗑️']) {
+  const b = document.createElement('button');
+  b.className = 'calcomania';
+  b.textContent = e;
+  alTocar(b, () => {
+    if (e === '🗑️') {
+      vehiculo.apariencia.quitarCalcomanias();
+      taller.elegirCalcomania(null);
+      sonido.sonidoNo();
+    } else {
+      taller.elegirCalcomania(e);
+      sonido.sonidoSi();
+      sonido.decir(vehiculo.tipo === 'moto' ? '¡Ahora toca la moto para pegarla!' : '¡Ahora toca el carro para pegarla!');
+    }
+    for (const otro of botonesCalcomania) otro.classList.toggle('elegida', otro.textContent === taller.calcomania);
+  });
+  botonesCalcomania.push(b);
+  contenedorCalcomanias.appendChild(b);
+}
+
+// Medidor de lodo: bolitas cafés (lodo) que se vuelven azul claro al limpiar.
+const medidor = panelTaller.querySelector('.medidor-lodo');
+const bolitas = Array.from({ length: 7 }, () => medidor.appendChild(document.createElement('i')));
+let lodoMostrado = -1;
+function actualizarMedidor() {
+  const total = vehiculo.apariencia.manchas.length || 1;
+  const sucias = Math.ceil((vehiculo.apariencia.manchasVisibles / total) * bolitas.length);
+  if (sucias === lodoMostrado) return;
+  lodoMostrado = sucias;
+  bolitas.forEach((b, i) => b.classList.toggle('limpia', i >= sucias));
+}
+
+function ponerPestana(nombre) {
+  panelTaller.dataset.pestana = nombre;
+  taller.ponerPestana(nombre);
+  for (const otro of botonesCalcomania) otro.classList.remove('elegida');
+  const cual = vehiculo.tipo === 'moto' ? 'la moto' : 'el carro';
+  if (nombre === 'pintura') sonido.decir('¡Elige un color o una calcomanía!');
+  else if (vehiculo.apariencia.manchasVisibles > 0) sonido.decir(`¡Talla ${cual} con tu dedo para quitar el lodo!`);
+  else sonido.decir(`¡${cual[0].toUpperCase() + cual.slice(1)} ya está limpio! Pero puedes echarle burbujas.`);
+}
+for (const b of panelTaller.querySelectorAll('.pestana')) alTocar(b, () => ponerPestana(b.dataset.pestana));
+
+function abrirTaller() {
+  enTaller = true;
+  controles.soltarTodo();
+  avisoChoque.hidden = true;
+  escena.remove(vehiculo.objeto);
+  taller.abrir(vehiculo);
+  vehiculo.objeto.traverse((m) => { if (m.isMesh) m.castShadow = !m.material.transparent; });
+  hud.hidden = true;
+  panelTaller.hidden = false;
+  $('btn-taller-salir').textContent = (vehiculo.tipo === 'moto' ? '🏍️' : '🚗') + ' ➜';
+  lodoMostrado = -1;
+  panelTaller.dataset.pestana = 'pintura';
+  taller.ponerPestana('pintura');
+  sonido.decir(vehiculo.tipo === 'moto' ? '¡Bienvenido al taller! ¿Qué le hacemos a tu moto?' : '¡Bienvenido al taller! ¿Qué le hacemos a tu carro?');
+}
+
+function cerrarTaller() {
+  enTaller = false;
+  taller.cerrar();
+  vehiculo.objeto.traverse((m) => { m.castShadow = false; });
+  escena.add(vehiculo.objeto);
+  panelTaller.hidden = true;
+  bloqueoTaller = true;
+  saltarCamara = true;
+  graficos.actualizarSombras();
+}
+
+alTocar($('btn-taller-salir'), () => {
+  cerrarTaller();
+  const s = ciudad.salidaTaller;
+  vehiculo.colocar(s.x, s.z, s.rumbo);
+  hud.hidden = false;
+  sonido.decir('¡A manejar!');
+});
+alTocar($('btn-taller-casa'), () => {
+  cerrarTaller();
+  volverAlInicio();
+});
+
+// Toques sobre el vehículo dentro del taller.
+const lienzo = $('escena');
+lienzo.addEventListener('pointerdown', (e) => { if (enTaller) taller.alBajar(e); });
+lienzo.addEventListener('pointermove', (e) => { if (enTaller) taller.alMover(e); });
+for (const tipo of ['pointerup', 'pointercancel']) lienzo.addEventListener(tipo, (e) => { if (enTaller) taller.alSubir(e); });
 
 // ---------- Pantallas ----------
 
@@ -311,10 +433,26 @@ renderer.setAnimationLoop((ahora) => {
   const dt = Math.min(0.05, dtReal);                      // para mover las cosas sin saltos grandes
   antes = ahora;
 
+  if (enTaller) {
+    taller.actualizar(dt);
+    actualizarMedidor();
+    sonido.actualizarMotor(0, false);
+    graficos.dibujar(taller.escena, taller.camara);
+    if (depurar) mostrarDepuracion(dtReal);
+    return;
+  }
+
   const manejando = jugando && !vertical.matches;
   const mando = manejando ? controles.leer() : QUIETO;
   vehiculo.actualizar(dt, mando, ciudad);
   revisarMotor(dt, mando);
+  // ¿Entró manejando al taller?
+  const enPorton = ciudad.enTaller(vehiculo.posicion.x, vehiculo.posicion.z);
+  if (jugando && enPorton && !bloqueoTaller) {
+    abrirTaller();
+    return;
+  }
+  if (!enPorton) bloqueoTaller = false;
   retos.actualizar(dt, vehiculo, estadoCajon);
   ciudad.actualizar(dt);
   moverCamara(dt);
@@ -343,7 +481,8 @@ if (depurar) {
     get carro() { return vehiculo; },
     get jugando() { return jugando; },
     get motorApagado() { return motorApagado; },
-    controles, ciudad, retos, camara, escena, renderer, graficos,
+    controles, ciudad, retos, camara, escena, renderer, graficos, taller,
+    get enTaller() { return enTaller; },
   };
 }
 

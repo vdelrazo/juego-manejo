@@ -1,0 +1,274 @@
+// Cómo se ve cada vehículo: color, calcomanías y lodo. Se guarda en este iPad.
+//
+// Calcomanías y manchas de lodo son "parches" (DecalGeometry) pegados sobre la carrocería:
+// van dentro del vehículo, así que se mueven con él.
+
+import * as THREE from 'three';
+import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
+
+const CLAVE = 'juego-manejo:vehiculos';
+const N_MANCHAS = 14;
+const MAX_CALCOMANIAS = 8;
+
+function leerTodo() {
+  try { return JSON.parse(localStorage.getItem(CLAVE)) || {}; } catch { return {}; }
+}
+function guardarTodo(datos) {
+  try { localStorage.setItem(CLAVE, JSON.stringify(datos)); } catch { /* no pasa nada */ }
+}
+
+function azarFijo(semilla) {
+  return () => {
+    semilla = (semilla * 16807) % 2147483647;
+    return (semilla - 1) / 2147483646;
+  };
+}
+
+const redondear = (v) => Math.round(v * 1000) / 1000;
+
+// ---------- Texturas ----------
+
+const texturasCalcomania = new Map();
+export function texturaCalcomania(emoji) {
+  if (!texturasCalcomania.has(emoji)) {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d');
+    g.font = '200px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(emoji, 128, 140);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    texturasCalcomania.set(emoji, t);
+  }
+  return texturasCalcomania.get(emoji);
+}
+
+let texturaLodo = null;
+function lodo() {
+  if (!texturaLodo) {
+    const azar = azarFijo(99);
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const mancha = (x, y, r, a) => {
+      const grad = g.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, `rgba(96,66,38,${a})`);
+      grad.addColorStop(0.7, `rgba(110,78,45,${a * 0.9})`);
+      grad.addColorStop(1, 'rgba(110,78,45,0)');
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(x, y, r, 0, Math.PI * 2);
+      g.fill();
+    };
+    mancha(64, 64, 38, 0.95);
+    for (let i = 0; i < 14; i++) {
+      const a = azar() * Math.PI * 2, d = 20 + azar() * 30;
+      mancha(64 + Math.cos(a) * d, 64 + Math.sin(a) * d, 6 + azar() * 12, 0.9);
+    }
+    texturaLodo = new THREE.CanvasTexture(c);
+    texturaLodo.colorSpace = THREE.SRGBColorSpace;
+  }
+  return texturaLodo;
+}
+
+// ---------- Parches ----------
+
+// Pega un parche sobre una pieza. p y n están en el espacio del "padre" de la pieza.
+function parche(pieza, p, n, tam, giro, material) {
+  pieza.updateMatrix();
+  const molde = new THREE.Mesh(pieza.geometry);
+  molde.matrixWorld.copy(pieza.matrix);
+  const ayuda = new THREE.Object3D();
+  ayuda.position.copy(p);
+  ayuda.lookAt(p.clone().add(n));
+  ayuda.rotateZ(giro);
+  const geo = new DecalGeometry(molde, p, ayuda.rotation, new THREE.Vector3(tam, tam, tam * 1.2));
+  const m = new THREE.Mesh(geo, material);
+  m.renderOrder = 2;
+  pieza.parent.add(m);
+  return m;
+}
+
+function materialParche(map, rugosidad) {
+  return new THREE.MeshStandardMaterial({
+    map, transparent: true, depthWrite: false, roughness: rugosidad,
+    polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+  });
+}
+
+// Punto y normal de un toque (intersección del raycaster), en el espacio del padre de la pieza.
+function puntoEnPieza(interseccion) {
+  const pieza = interseccion.object;
+  pieza.updateMatrix();
+  const p = pieza.parent.worldToLocal(interseccion.point.clone());
+  const n = interseccion.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(pieza.matrix)).normalize();
+  return { pieza, p, n };
+}
+
+export class Apariencia {
+  constructor(tipo, modelo) {
+    this.tipo = tipo;
+    this.modelo = modelo;
+    this.superficies = modelo.superficies;   // piezas donde se pueden pegar cosas
+    this.colorDestino = null;
+    this.calcomanias = [];                    // { datos, malla }
+    this.lodo = 0;                            // 0 = limpio, 1 = lleno de lodo
+    this.manchas = [];
+    this.tamCalcomania = tipo === 'moto' ? 0.3 : 0.55;
+    this.prepararManchas();
+    this.cargar();
+  }
+
+  // ---------- Guardar y cargar ----------
+
+  cargar() {
+    const d = leerTodo()[this.tipo];
+    if (!d) return;
+    if (d.color) this.modelo.piel.color.set(d.color);
+    for (const c of d.calcomanias || []) this.pegar(c, false);
+    this.lodo = d.lodo ?? 0;
+    this.mostrarLodo();
+  }
+
+  guardar() {
+    const todo = leerTodo();
+    todo[this.tipo] = {
+      color: '#' + (this.colorDestino ?? this.modelo.piel.color).getHexString(),
+      calcomanias: this.calcomanias.map((c) => c.datos),
+      lodo: redondear(this.lodo),
+    };
+    guardarTodo(todo);
+  }
+
+  // ---------- Pintura ----------
+
+  pintar(hex) {
+    this.colorDestino = new THREE.Color(hex);
+    this.guardar();
+  }
+
+  // ---------- Calcomanías ----------
+
+  pegar({ e, i, p, n, g }, guardar = true) {
+    const pieza = this.superficies[i];
+    if (!pieza) return;
+    const malla = parche(pieza, new THREE.Vector3(...p), new THREE.Vector3(...n), this.tamCalcomania, g, materialParche(texturaCalcomania(e), 0.35));
+    this.calcomanias.push({ datos: { e, i, p, n, g }, malla });
+    if (this.calcomanias.length > MAX_CALCOMANIAS) this.quitar(this.calcomanias.shift());
+    if (guardar) this.guardar();
+  }
+
+  pegarEn(interseccion, emoji) {
+    const i = this.superficies.indexOf(interseccion.object);
+    if (i < 0) return false;
+    const { p, n } = puntoEnPieza(interseccion);
+    this.pegar({ e: emoji, i, p: p.toArray().map(redondear), n: n.toArray().map(redondear), g: redondear((Math.random() - 0.5) * 0.7) });
+    return true;
+  }
+
+  quitar(c) {
+    c.malla.removeFromParent();
+    c.malla.geometry.dispose();
+    c.malla.material.dispose();
+  }
+
+  quitarCalcomanias() {
+    for (const c of this.calcomanias) this.quitar(c);
+    this.calcomanias = [];
+    this.guardar();
+  }
+
+  // ---------- Lodo ----------
+
+  // Lugares fijos donde puede caer lodo: se buscan disparando rayos hacia el vehículo.
+  prepararManchas() {
+    const raiz = this.modelo.raiz;
+    raiz.updateMatrixWorld(true);
+    const azar = azarFijo(this.tipo === 'moto' ? 5 : 3);
+    const rayo = new THREE.Raycaster();
+    const centro = new THREE.Vector3(0, this.tipo === 'moto' ? 0.9 : 0.75, 0);
+    const largo = this.tipo === 'moto' ? 1.4 : 2.4;
+    for (let k = 0; k < 400 && this.manchas.length < N_MANCHAS; k++) {
+      // Más lodo en los lados y abajo que en el techo.
+      const dir = new THREE.Vector3(azar() - 0.5, (azar() - 0.75) * 0.7, (azar() - 0.5) * largo).normalize();
+      const origen = centro.clone().addScaledVector(dir, 6);
+      rayo.set(origen, dir.clone().negate());
+      const golpe = rayo.intersectObjects(this.superficies, false)[0];
+      if (!golpe) continue;
+      const { pieza, p, n } = puntoEnPieza(golpe);
+      if (this.manchas.some((m) => m.pieza === pieza && m.p.distanceTo(p) < 0.35)) continue;
+      this.manchas.push({ pieza, p, n, tam: (this.tipo === 'moto' ? 0.25 : 0.42) + azar() * 0.2, giro: azar() * 6.28, malla: null, opacidad: 0, quitando: false });
+    }
+  }
+
+  mostrarLodo() {
+    const visibles = Math.round(this.lodo * this.manchas.length);
+    this.manchas.forEach((m, k) => {
+      const debe = k < visibles;
+      if (debe && !m.malla) m.malla = parche(m.pieza, m.p, m.n, m.tam, m.giro, materialParche(lodo(), 1));
+      if (m.malla) {
+        if (debe && !m.quitando) m.opacidad = 1;
+        if (!debe && !m.quitando) m.opacidad = 0;
+        m.malla.visible = m.opacidad > 0.01;
+        m.malla.material.opacity = m.opacidad;
+      }
+    });
+  }
+
+  // Manejar ensucia poco a poco (cantidad: de 0 a 1).
+  ensuciar(cantidad) {
+    const antes = Math.round(this.lodo * this.manchas.length);
+    this.lodo = Math.min(1, this.lodo + cantidad);
+    if (Math.round(this.lodo * this.manchas.length) !== antes) {
+      this.mostrarLodo();
+      this.guardar();
+    }
+  }
+
+  get manchasVisibles() {
+    return this.manchas.filter((m) => m.malla && m.malla.visible && !m.quitando).length;
+  }
+
+  // Tallar en un punto (del mundo): quita la mancha más cercana. Devuelve true si quitó algo.
+  tallarEn(puntoMundo) {
+    let mejor = null;
+    let distancia = this.tipo === 'moto' ? 0.55 : 0.95;   // generoso: los dedos son grandes
+    for (const m of this.manchas) {
+      if (!m.malla || !m.malla.visible || m.quitando) continue;
+      const d = m.pieza.parent.localToWorld(m.p.clone()).distanceTo(puntoMundo);
+      if (d < distancia) {
+        distancia = d;
+        mejor = m;
+      }
+    }
+    if (!mejor) return false;
+    mejor.quitando = true;
+    this.lodo = Math.max(0, (this.manchasVisibles) / this.manchas.length);
+    this.guardar();
+    return true;
+  }
+
+  // ---------- Cada cuadro ----------
+
+  actualizar(dt) {
+    if (this.colorDestino) {
+      this.modelo.piel.color.lerp(this.colorDestino, 1 - Math.exp(-6 * dt));
+      if (Math.abs(this.modelo.piel.color.r - this.colorDestino.r) + Math.abs(this.modelo.piel.color.g - this.colorDestino.g) + Math.abs(this.modelo.piel.color.b - this.colorDestino.b) < 0.003) {
+        this.modelo.piel.color.copy(this.colorDestino);
+        this.colorDestino = null;
+      }
+    }
+    for (const m of this.manchas) {
+      if (!m.quitando) continue;
+      m.opacidad = Math.max(0, m.opacidad - dt * 3);
+      m.malla.material.opacity = m.opacidad;
+      if (m.opacidad <= 0) {
+        m.quitando = false;
+        m.malla.visible = false;
+      }
+    }
+  }
+}

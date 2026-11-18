@@ -68,6 +68,17 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
   impiden jugar. En el taller se reparan y se lavan.
 - **Pintura y piezas siempre se pueden cambiar**, aunque el vehículo no esté dañado ni sucio.
 - Cada iPad guarda su vehículo (colores, piezas, calcomanías) para la siguiente vez.
+- **Cómo quedó (parte 1, 2026-11-18):**
+  - El taller está en la manzana de enfrente de la salida: portón de 9 m con marco amarillo,
+    letrero con dibujos (🔧 🚗 🎨) y flechas amarillas en el piso. La zona de entrada empieza en la
+    banqueta. Al salir, el vehículo queda frente al portón viendo hacia la calle.
+  - Adentro es un cuarto aparte (no la ciudad): piso brillante, plataforma que gira sola (se gira
+    también arrastrando), pared de herramientas y luz de estudio. El panel ocupa el 34 % derecho.
+  - 🎨 Pintura: 9 botes de color (la voz dice el color) y 8 calcomanías de dibujos (se elige una
+    y se toca el vehículo para pegarla; máximo 8; el bote de basura las quita).
+  - 🧽 Lavado: el lodo son manchas pegadas a la carrocería (hasta 14). Se llena en unos 800 m de
+    calle, más rápido en el pasto y con cada choque. Se quita tallando con el dedo (salen burbujas);
+    al quedar limpio hay festejo. Un medidor de bolitas cafés muestra cuánto falta.
 
 ### Gráficas (pedido 2026-11-18: "lo más que se pueda")
 - Calidad lo más alta posible: materiales con reflejos (pintura con barniz, vidrios), cielo con
@@ -147,6 +158,7 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
    *Hecha el 2026-11-18.* Medido en una laptop con Intel Iris Xe (potencia parecida a la de un iPad de
    11.ª generación) con la resolución de un iPad de 11": calidad alta ≈ 52 fps, media ≈ 73 fps.
 6. **Taller, parte 1:** edificio del taller, pantalla dividida, guardado, pintura y lavado (con suciedad al manejar).
+   *Hecha el 2026-11-18.*
 7. **Taller, parte 2:** daños por choques, reparación y cambio de piezas.
 8. **Semáforos:** estrellas extra por detenerse en rojo.
 9. **Instalable y pulido:** PWA sin internet, ícono, música, voces y ajustes de rendimiento.
@@ -172,3 +184,5 @@ Abrir https://vdelrazo.github.io/juego-manejo/?depurar y revisar:
 10. ¿El rugido del motor gusta? ¿Se nota que se apaga en el cajón y que arranca otra vez?
 11. ¿Los niños entienden los dibujos del menú y del panel de retos, y la flecha?
 12. ¿Estacionarse en el cajón es demasiado difícil o demasiado fácil?
+13. ¿Es fácil entrar al taller? ¿Se entiende el panel (pintura, calcomanías, lavado)?
+14. ¿Se ve bien el lodo y es fácil quitarlo tallando?

@@ -160,6 +160,30 @@
     </button>
   </div>
 
+  <!-- Taller: el vehículo a la izquierda y el panel a la derecha -->
+  <div id="taller" hidden>
+    <button id="btn-taller-casa" class="boton" aria-label="Inicio">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M50 14 L90 50 H78 V86 H58 V64 H42 V86 H22 V50 H10 Z" fill="#e63946" stroke="#7a1c24" stroke-width="5" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div id="panel-taller">
+      <div class="pestanas">
+        <button class="pestana" data-pestana="pintura" aria-label="Pintura">🎨</button>
+        <button class="pestana" data-pestana="lavado" aria-label="Lavado">🧽</button>
+      </div>
+      <div class="contenido" id="contenido-pintura">
+        <div class="botes"></div>
+        <div class="calcomanias"></div>
+      </div>
+      <div class="contenido" id="contenido-lavado">
+        <div class="esponja" aria-hidden="true">🧽</div>
+        <div class="medidor-lodo" aria-label="Lodo"></div>
+      </div>
+      <button id="btn-taller-salir" class="salir" aria-label="A manejar">🚗 ➜</button>
+    </div>
+  </div>
+
   <div id="confeti" aria-hidden="true"></div>
 
   <!-- Aviso para girar el iPad (solo aparece en vertical) -->

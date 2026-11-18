@@ -197,8 +197,10 @@ export function crearGraficos(lienzo) {
       aplicarNivel();
     },
 
-    dibujar() {
-      if (compositor) compositor.render();
+    // Dibuja la ciudad, u otra escena si se da (por ejemplo, el taller).
+    dibujar(otraEscena = null, otraCamara = null) {
+      if (otraEscena) renderer.render(otraEscena, otraCamara);
+      else if (compositor) compositor.render();
       else renderer.render(escena, camara);
     },
 

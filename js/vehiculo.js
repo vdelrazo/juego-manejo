@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { crearCarro, crearMoto } from './modelos.js';
+import { Apariencia } from './apariencia.js';
 
 export const VEL_MAX = 10;          // metros por segundo
 const VEL_REVERSA = 4;              // 40 % de la velocidad máxima
@@ -66,6 +67,7 @@ export class Vehiculo {
     this.radioRueda = this.modelo.radioRueda;
     this.armarPaquete();
     this.armarEstrellitas();
+    this.apariencia = new Apariencia(tipo, this.modelo);
     // El vehículo no entra al mapa de sombras (que se recalcula de vez en cuando):
     // su sombra es la mancha suave pegada al piso que trae el modelo.
     this.objeto.traverse((m) => { m.castShadow = false; });
@@ -115,6 +117,8 @@ export class Vehiculo {
     this.adelante.set(Math.sin(this.rumbo), 0, Math.cos(this.rumbo));
 
     this.posicion.addScaledVector(this.adelante, v * dt);
+    // Manejar ensucia: se llena de lodo en unos 800 m de calle (más rápido en el pasto).
+    this.apariencia.ensuciar(Math.abs(v) * dt * (ciudad.esPasto(this.posicion.x, this.posicion.z) ? 0.004 : 0.0012));
     this.chocar(ciudad.obstaculos);
 
     // Sube y baja de la banqueta con suavidad.
@@ -123,6 +127,7 @@ export class Vehiculo {
 
     this.objeto.rotation.y = this.rumbo;
     this.animar(dt, avanzar, retroceder);
+    this.apariencia.actualizar(dt);
   }
 
   chocar(obstaculos) {
@@ -153,6 +158,7 @@ export class Vehiculo {
       this.velocidad = -Math.sign(this.velocidad) * Math.min(4, 1 + impacto * 0.35);
       this.rebote = TIEMPO_REBOTE;
       this.mareo = 1;
+      this.apariencia.ensuciar(0.08);
       this.alChocar?.(impacto);
     } else {
       // Toque suave: de frente se detiene, de lado se desliza.

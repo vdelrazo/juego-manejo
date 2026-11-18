@@ -183,7 +183,8 @@ export function crearCarro({ color = 0xef233c, rines = 'clasico', placa = 'AMIGO
   s.lineTo(-1.2, 1.02);
   s.quadraticCurveTo(-1.86, 1.02, -1.89, 0.8);
   s.closePath();
-  carroceria.add(malla(perfil(s, 1.9, { grosor: 0.1, tam: 0.06 }), piel));
+  const lamina = malla(perfil(s, 1.9, { grosor: 0.1, tam: 0.06 }), piel);
+  carroceria.add(lamina);
   // Interior oscuro de las salpicaderas (lo que se ve arriba de cada llanta).
   for (const z of [1.2, -1.2]) {
     const hueco = malla(new THREE.CylinderGeometry(0.47, 0.47, 1.6, 24).rotateZ(Math.PI / 2), MAT.hueco, { sombra: false });
@@ -199,7 +200,8 @@ export function crearCarro({ color = 0xef233c, rines = 'clasico', placa = 'AMIGO
   c.lineTo(-0.8, 1.52);        // techo
   c.lineTo(-1.1, 1.25);        // medallón
   c.closePath();
-  carroceria.add(malla(perfil(c, 1.5, { grosor: 0.08, tam: 0.05 }), piel));
+  const cabina = malla(perfil(c, 1.5, { grosor: 0.08, tam: 0.05 }), piel);
+  carroceria.add(cabina);
   // Parabrisas y medallón: placas de vidrio pegadas a las caras inclinadas.
   const parabrisas = malla(new THREE.PlaneGeometry(1.3, 0.6), MAT.vidrio, { sombra: false });
   parabrisas.position.set(0, 1.3, 0.28);
@@ -286,6 +288,7 @@ export function crearCarro({ color = 0xef233c, rines = 'clasico', placa = 'AMIGO
 
   return {
     raiz, cuerpo, ruedas, pivotesDelanteros, piel, faros, defensas,
+    superficies: [lamina, cabina],   // donde se pegan calcomanías y lodo
     radioRueda: RUEDA_CARRO,
     anclaPaquete: { padre: carroceria, x: 0, y: 1.98, z: -0.42, tam: 0.85 },
     alturaEstrellitas: 2.4,
@@ -404,6 +407,7 @@ export function crearMoto({ color = 0x1d7ff2, casco = 0xffd60a, chamarra = 0x06d
 
   return {
     raiz, cuerpo, ruedas: [trasera, delantera], pivotesDelanteros: [pivote], piel, pielCasco, faros: [faro],
+    superficies: [tanque, cola, caja],
     radioRueda: R,
     anclaPaquete: { padre: cuerpo, x: 0, y: 1.2, z: -0.86, tam: 0.5 },
     alturaEstrellitas: 2.3,

@@ -352,3 +352,160 @@ html, body {
   white-space: pre;
   pointer-events: none;
 }
+
+/* ---------- Taller: el vehículo a la izquierda y el panel a la derecha (34 %) ---------- */
+
+#taller {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+}
+
+#taller > *,
+#panel-taller * { pointer-events: auto; }
+
+#btn-taller-casa {
+  top: calc(env(safe-area-inset-top) + var(--orilla));
+  left: calc(env(safe-area-inset-left) + var(--orilla));
+  width: 88px;
+  height: 88px;
+  background: #fff;
+}
+
+#panel-taller {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 34vw;
+  padding: calc(env(safe-area-inset-top) + 18px) calc(env(safe-area-inset-right) + 18px) calc(env(safe-area-inset-bottom) + 18px) 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: #ffffff;
+  border-radius: 40px 0 0 40px;
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.15);
+}
+
+#panel-taller button {
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  transition: transform 0.08s;
+}
+
+#panel-taller button:active,
+#panel-taller button.apretado { transform: scale(0.92); }
+
+.pestanas {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.pestana {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  font-size: 54px;
+  line-height: 1;
+  background: #eef2f6;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+}
+
+#taller[data-pestana="pintura"] .pestana[data-pestana="pintura"],
+#taller[data-pestana="lavado"] .pestana[data-pestana="lavado"] {
+  background: #ffc300;
+}
+
+.contenido {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  gap: 18px;
+  overflow: hidden;
+}
+
+#taller[data-pestana="pintura"] #contenido-pintura,
+#taller[data-pestana="lavado"] #contenido-lavado { display: flex; }
+
+.botes {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  justify-items: center;
+}
+
+.bote {
+  width: min(4.8vw, 62px);
+  height: min(4.8vw, 62px);
+  border-radius: 50%;
+  border: 5px solid #fff !important;
+  box-shadow: 0 0 0 3px #d5dbe2, 0 6px 0 rgba(0, 0, 0, 0.18);
+}
+
+.calcomanias {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  justify-items: center;
+}
+
+.calcomania {
+  width: min(4.8vw, 62px);
+  height: min(4.8vw, 62px);
+  border-radius: 18px;
+  font-size: min(3.6vw, 40px);
+  line-height: 1;
+  background: #eef2f6;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.12);
+}
+
+.calcomania.elegida {
+  background: #ffe8a3;
+  box-shadow: 0 0 0 5px #ffc300, 0 5px 0 rgba(0, 0, 0, 0.12);
+}
+
+.esponja {
+  align-self: center;
+  font-size: 150px;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  animation: tallar 1.2s ease-in-out infinite;
+}
+
+@keyframes tallar {
+  0%, 100% { transform: translateX(-24px) rotate(-12deg); }
+  50% { transform: translateX(24px) rotate(12deg); }
+}
+
+.medidor-lodo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.medidor-lodo i {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #7a5230;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s, background 0.3s;
+}
+
+.medidor-lodo i.limpia {
+  background: #bfe9ff;
+  transform: scale(0.75);
+}
+
+.salir {
+  margin-top: auto;
+  height: 104px;
+  border-radius: 52px;
+  font-size: 60px;
+  background: #2dc653;
+  box-shadow: 0 8px 0 #1a7f34;
+}

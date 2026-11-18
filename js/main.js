@@ -1,7 +1,8 @@
 // Arranque del juego: escena, cámara, pantallas (elegir vehículo → elegir modo → jugar)
 // y el ciclo de cada cuadro.
 
-import * as THREE from '../vendor/three/three.module.js';
+import * as THREE from 'three';
+import { crearGraficos } from './graficos.js';
 import { crearCiudad } from './ciudad.js';
 import { Vehiculo } from './vehiculo.js';
 import { Controles, alTocar } from './controles.js';
@@ -12,14 +13,13 @@ const $ = (id) => document.getElementById(id);
 
 // ---------- Escena ----------
 
-const renderer = new THREE.WebGLRenderer({ canvas: $('escena'), antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
+const graficos = crearGraficos($('escena'));
+const renderer = graficos.renderer;
 
 const escena = new THREE.Scene();
-const camara = new THREE.PerspectiveCamera(60, 1, 0.3, 500);
+const camara = new THREE.PerspectiveCamera(58, 1, 0.3, 700);
 const ciudad = crearCiudad(escena);
+graficos.prepararEscena(escena, camara, ciudad.sol);
 const SALIDA = ciudad.salida;
 
 // Los dos vehículos se arman al principio; en la escena solo está el elegido.
@@ -38,15 +38,6 @@ function ponerVehiculo(tipo) {
   saltarCamara = true;
 }
 
-function ajustarTamano() {
-  const ancho = window.innerWidth;
-  const alto = window.innerHeight;
-  renderer.setSize(ancho, alto, false);
-  camara.aspect = ancho / alto;
-  camara.updateProjectionMatrix();
-}
-addEventListener('resize', ajustarTamano);
-ajustarTamano();
 
 // ---------- Controles ----------
 
@@ -229,7 +220,10 @@ let anguloVuelta = 0;
 // Devuelve qué tan lejos quedó, de 0 (encima del vehículo) a 1 (distancia normal).
 function colocarCamara(dx, dz, distancia, altura) {
   const p = vehiculo.posicion;
-  const libre = ciudad.obstaculos.libre(p.x, p.z, p.x + dx * distancia, p.z + dz * distancia);
+  const libre = Math.min(
+    ciudad.obstaculos.libre(p.x, p.z, p.x + dx * distancia, p.z + dz * distancia),
+    ciudad.libreDeArboles(p.x, p.z, p.x + dx * distancia, p.z + dz * distancia),
+  );
   const d = libre < 1 ? Math.max(2.2, libre * distancia - 0.8) : distancia;
   posicionDeseada.set(p.x + dx * d, p.y + altura + (distancia - d) * 0.45, p.z + dz * d);
   return d / distancia;
@@ -301,7 +295,7 @@ function mostrarDepuracion(dt) {
   desdeUltimoConteo = 0;
   const c = controles;
   depurar.textContent =
-    `${fps} fps · vel ${vehiculo.velocidad.toFixed(1)} · ${retos.tipo ?? 'paseo'} · motor ${motorApagado ? 'apagado' : 'prendido'}\n` +
+    `${fps} fps · calidad ${graficos.nivel} · vel ${vehiculo.velocidad.toFixed(1)} · ${retos.tipo ?? 'paseo'} · motor ${motorApagado ? 'apagado' : 'prendido'}\n` +
     `modo ${c.modo} · permiso ${c.permiso} · sensor ${c.hayDatos ? 'sí' : 'no'} · giro ${c.giroInclinacion.toFixed(2)} · ` +
     `lado ${c.lecturaCruda.lado.toFixed(1)} · vertical ${c.lecturaCruda.vertical.toFixed(1)} · signo ${c.signo}`;
 }
@@ -313,7 +307,8 @@ let antes = performance.now();
 let siguientePitido = 0;
 
 renderer.setAnimationLoop((ahora) => {
-  const dt = Math.min(0.05, Math.max(0, (ahora - antes) / 1000));
+  const dtReal = Math.max(0, (ahora - antes) / 1000);   // para medir los fps de verdad
+  const dt = Math.min(0.05, dtReal);                      // para mover las cosas sin saltos grandes
   antes = ahora;
 
   const manejando = jugando && !vertical.matches;
@@ -321,8 +316,9 @@ renderer.setAnimationLoop((ahora) => {
   vehiculo.actualizar(dt, mando, ciudad);
   revisarMotor(dt, mando);
   retos.actualizar(dt, vehiculo, estadoCajon);
+  ciudad.actualizar(dt);
   moverCamara(dt);
-  ciudad.seguir(vehiculo.posicion);
+  if (ciudad.seguir(vehiculo.posicion)) graficos.actualizarSombras();
   sonido.actualizarMotor(Math.abs(vehiculo.fraccionVelocidad), jugando && !motorApagado, mando.acelerar || mando.reversa);
 
   // "Pi-pi-pi" mientras va de reversa.
@@ -335,8 +331,9 @@ renderer.setAnimationLoop((ahora) => {
     siguientePitido = 0;
   }
 
-  renderer.render(escena, camara);
-  if (depurar) mostrarDepuracion(dt);
+  graficos.dibujar();
+  graficos.vigilar(dtReal, jugando);
+  if (depurar) mostrarDepuracion(dtReal);
 });
 
 // Para revisar el estado desde la consola o en pruebas automáticas.
@@ -346,7 +343,7 @@ if (depurar) {
     get carro() { return vehiculo; },
     get jugando() { return jugando; },
     get motorApagado() { return motorApagado; },
-    controles, ciudad, retos, camara, escena, renderer,
+    controles, ciudad, retos, camara, escena, renderer, graficos,
   };
 }
 

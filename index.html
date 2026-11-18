@@ -10,6 +10,15 @@
   <meta name="theme-color" content="#9fd8ff">
   <title>A manejar</title>
   <link rel="stylesheet" href="css/juego.css">
+  <!-- "three" apunta a la copia local de Three.js (funciona sin CDN) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.js",
+        "three/addons/": "./vendor/three/addons/"
+      }
+    }
+  </script>
   <script type="module" src="js/main.js"></script>
 </head>
 <body>

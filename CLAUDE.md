@@ -58,6 +58,28 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
 - **Semáforos y señales de alto:** si el niño se detiene en rojo, gana estrellas extra.
   Pasarse el alto no castiga; solo se pierde la estrella.
 
+### Taller (aprobado 2026-11-18)
+- Se entra **manejando hasta un edificio "Taller"** en la ciudad. Tiene que ser fácil entrar:
+  portón ancho, zona de entrada grande y marcada.
+- Adentro la pantalla se divide: **el vehículo en 3D ocupa la mayor parte** (unos dos tercios,
+  a la izquierda) y un panel a la derecha con pestañas de dibujos: 🔧 reparación, 🧽 lavado,
+  🎨 pintura, 🔩 piezas. Al cambiar de pestaña solo cambia el panel. Un botón grande regresa a manejar.
+- Los choques dejan **daños** y manejar **ensucia** el vehículo. Son solo de apariencia: nunca
+  impiden jugar. En el taller se reparan y se lavan.
+- **Pintura y piezas siempre se pueden cambiar**, aunque el vehículo no esté dañado ni sucio.
+- Cada iPad guarda su vehículo (colores, piezas, calcomanías) para la siguiente vez.
+
+### Gráficas (pedido 2026-11-18: "lo más que se pueda")
+- Calidad lo más alta posible: materiales con reflejos (pintura con barniz, vidrios), cielo con
+  degradado y sol, sombras suaves, brillo (*bloom*), texturas generadas en el código y más detalle
+  en la ciudad (cornisas, postes, bancas, tinacos, etc.).
+- **Calidad automática:** si el iPad va lento, el juego baja la calidad solo y lo recuerda.
+  `?calidad=alta|media|baja` en la dirección la fija a mano.
+- Lo que más costaba (y cómo se resolvió): el *bloom* (se quitó de la ciudad; queda para el taller),
+  dibujar la ciudad entera en cada cuadro (se arma en trozos de 96 m y no se dibuja lo que no se ve)
+  y recalcular sombras en cada cuadro (ahora solo cuando el vehículo avanza 8 m; el vehículo usa
+  una sombra suave pegada al piso).
+
 ### Choques: nunca se pierde
 - No hay "game over" ni vidas.
 - Al chocar, el vehículo rebota suavemente, suena algo chistoso ("boing") y aparece el mensaje
@@ -91,7 +113,11 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
 
 - **HTML + JavaScript (módulos ES) + Three.js.** Sin paso de compilación: lo que está en `main` es lo que se publica.
 - **Three.js copiado dentro del repo** (`vendor/three/`, versión 0.187.0), no cargado desde un CDN, para que funcione sin internet.
-- **Modelos hechos con cajas y cilindros** en el código, sin archivos 3D. Sonidos generados con Web Audio, sin archivos de audio.
+- **Modelos hechos en el código**, sin archivos 3D: formas redondeadas (perfiles extruidos con
+  bisel, cápsulas, tornos) y piezas separadas para poder pintarlas y cambiarlas en el taller.
+  Texturas dibujadas en el código (canvas), sin archivos de imagen. Sonidos generados con Web Audio.
+- **Complementos de Three.js** (efectos de imagen) copiados en `vendor/three/addons/`; un
+  *import map* en `index.html` hace que `three` apunte a la copia local.
 - **`?depurar`** al final de la dirección muestra fps y lo que lee el sensor de inclinación, para revisar en el iPad.
 - **GitHub Pages** se publica desde la raíz de la rama `main`. `.nojekyll` evita que Jekyll procese los archivos.
 - **PWA:** con `manifest.json` y un *service worker*, el juego abre en pantalla completa, con ícono propio y sin internet.
@@ -111,14 +137,19 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
 
 1. **Prototipo:** un carro sobre terreno plano, cámara detrás, controles de botones e inclinación, y cambio de control en plena partida.
    *Hecha el 2026-11-17; falta probarla en el iPad.*
-2. **Ciudad, reversa y choques:** calles, edificios y árboles; reversa; choques con rebote, sonido y "¡Cuidado, me dolió!"; motor más suave.
-   *Hecha el 2026-11-17; falta probarla en el iPad.*
+2. **Ciudad, reversa y choques:** calles, edificios y árboles; reversa; choques con rebote, sonido y "¡Cuidado, me dolió!"; sonido del motor nuevo.
+   *Hecha el 2026-11-17.*
 3. **Menú de inicio:** elegir vehículo (moto o carro) y modo (paseo libre o retos).
-   *Hecha el 2026-11-17; falta probarla en el iPad.*
-4. **Retos y semáforos:** estrellas, paquete a la casa de color y estacionarse, con flecha guía
-   (*hechos el 2026-11-17; falta probarlos en el iPad*). Falta: semáforos con estrellas extra
-   por respetar el rojo.
-5. **Instalable y pulido:** PWA sin internet, ícono, música, voces y ajustes de rendimiento.
+   *Hecha el 2026-11-17.*
+4. **Retos:** estrellas, paquete a la casa de color y estacionarse, con flecha guía.
+   *Hechos el 2026-11-17.* (El 2026-11-17 se jugó un rato en el iPad y "estuvo bien"; no se midieron fps.)
+5. **Gráficas al máximo:** luz, materiales, cielo, carro y moto nuevos, ciudad con detalle, calidad automática.
+   *Hecha el 2026-11-18.* Medido en una laptop con Intel Iris Xe (potencia parecida a la de un iPad de
+   11.ª generación) con la resolución de un iPad de 11": calidad alta ≈ 52 fps, media ≈ 73 fps.
+6. **Taller, parte 1:** edificio del taller, pantalla dividida, guardado, pintura y lavado (con suciedad al manejar).
+7. **Taller, parte 2:** daños por choques, reparación y cambio de piezas.
+8. **Semáforos:** estrellas extra por detenerse en rojo.
+9. **Instalable y pulido:** PWA sin internet, ícono, música, voces y ajustes de rendimiento.
 
 ## Preguntas abiertas
 
@@ -134,7 +165,7 @@ Abrir https://vdelrazo.github.io/juego-manejo/?depurar y revisar:
 3. ¿La sensibilidad está bien? (giro completo con 25° de inclinación)
 4. ¿Se oyen el motor y la voz? ¿La voz suena con acento mexicano?
 5. ¿Las flechas y los pedales funcionan bien con dos dedos?
-6. ¿Cuántos fps marca? (la ciudad tiene unos 40 000 triángulos)
+6. ¿Cuántos fps marca y en qué calidad se queda? (con `?depurar` se ven los dos datos abajo al centro)
 7. ¿La velocidad se siente bien para un niño de 3 a 5 años?
 8. ¿El pedal de reversa está en un buen lugar? ¿El "pi-pi-pi" molesta?
 9. ¿El choque se siente bien (rebote, "boing", mensaje)? ¿O se repite demasiado?

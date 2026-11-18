@@ -2,7 +2,7 @@
 // Una flecha grande sobre el vehículo apunta al objetivo y la voz dice qué hacer.
 // Al terminar uno hay festejo y, unos segundos después, empieza el siguiente.
 
-import * as THREE from '../vendor/three/three.module.js';
+import * as THREE from 'three';
 import { COLORES_CASA } from './ciudad.js';
 
 const ORDEN = ['estrellas', 'paquete', 'estacionarse'];
@@ -79,8 +79,8 @@ export class Retos {
     geoFlecha.center();
     geoFlecha.rotateX(Math.PI / 2);        // acostada, apuntando hacia +z
     geoFlecha.scale(1.25, 1.25, 1.25);
-    this.puntero = new THREE.Mesh(geoFlecha, new THREE.MeshLambertMaterial({ color: 0xffb703, emissive: 0x7a4a00 }));
-    this.puntero.castShadow = true;
+    this.puntero = new THREE.Mesh(geoFlecha, new THREE.MeshStandardMaterial({ color: 0xffb703, emissive: 0xff8c00, emissiveIntensity: 0.35, roughness: 0.35, metalness: 0.1 }));
+    this.puntero.castShadow = false;
     // La flecha va sobre una "placa" inclinada hacia la cámara (que está detrás del vehículo):
     // así se ve de frente y no de canto. Dentro de la placa gira hacia el objetivo.
     this.flecha = new THREE.Group();
@@ -92,11 +92,11 @@ export class Retos {
     // Estrellas para juntar.
     const geoEstrella = new THREE.ExtrudeGeometry(formaEstrella(1.0, 0.45), { depth: 0.3, bevelEnabled: false });
     geoEstrella.center();
-    const matEstrella = new THREE.MeshLambertMaterial({ color: AMARILLO, emissive: 0x8a6d00 });
+    const matEstrella = new THREE.MeshStandardMaterial({ color: AMARILLO, emissive: 0xffb000, emissiveIntensity: 0.45, metalness: 0.55, roughness: 0.22 });
     this.estrellas = [];
     for (let i = 0; i < N_ESTRELLAS; i++) {
       const e = new THREE.Mesh(geoEstrella, matEstrella);
-      e.castShadow = true;
+      e.castShadow = false;
       e.visible = false;
       escena.add(e);
       this.estrellas.push(e);
@@ -116,7 +116,7 @@ export class Retos {
     relleno.position.y = 0.2;
     this.rellenoCajon = relleno;
     this.bordesCajon = [];
-    const matBorde = new THREE.MeshLambertMaterial({ color: AMARILLO, emissive: 0x8a6d00 });
+    const matBorde = new THREE.MeshStandardMaterial({ color: AMARILLO, emissive: 0xffb000, emissiveIntensity: 0.5, roughness: 0.4 });
     for (let i = 0; i < 4; i++) {
       const b = new THREE.Mesh(new THREE.BoxGeometry(1, 0.06, 1), matBorde);
       this.bordesCajon.push(b);

@@ -235,11 +235,19 @@ export function crearTaller(renderer, ui) {
   let reloj = 0;
   let limpioAvisado = false;
 
+  // La cámara se aleja según el tamaño del vehículo (el camión de bomberos es más largo).
   function colocarCamara() {
-    const moto = vehiculo?.tipo === 'moto';
-    const d = moto ? 6.8 : 10.2;
-    camara.position.set(d * 0.15, moto ? 2.1 : 2.7, d);
-    camara.lookAt(0, moto ? 0.85 : 0.75, 0);
+    const b = new THREE.Box3();
+    vehiculo.objeto.updateMatrixWorld(true);
+    vehiculo.objeto.traverse((o) => {
+      if (o.isMesh && o.visible && !(o.material.transparent)) b.expandByObject(o, true);
+    });
+    const t = b.getSize(new THREE.Vector3());
+    const largo = Math.max(t.x, t.z);
+    const alto = t.y;
+    const d = Math.max(6.8, largo * 2.3 + alto * 0.5);
+    camara.position.set(d * 0.15, alto * 1.15 + 0.7, d);
+    camara.lookAt(0, alto * 0.42, 0);
   }
 
   // ---------- Toques en la parte del vehículo ----------

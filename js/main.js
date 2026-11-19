@@ -8,6 +8,7 @@ import { Vehiculo } from './vehiculo.js';
 import { Controles, alTocar } from './controles.js';
 import { Retos } from './retos.js';
 import { crearTaller, COLORES_PINTURA, CALCOMANIAS } from './taller.js';
+import { cargarModelosArtista } from './modelos-artista.js';
 import * as sonido from './sonido.js';
 
 const $ = (id) => document.getElementById(id);
@@ -19,12 +20,16 @@ const renderer = graficos.renderer;
 
 const escena = new THREE.Scene();
 const camara = new THREE.PerspectiveCamera(58, 1, 0.3, 700);
+// Primero se cargan los modelos de artista (mientras, se ve el círculo de "cargando").
+await cargarModelosArtista();
 const ciudad = crearCiudad(escena);
 graficos.prepararEscena(escena, camara, ciudad.sol);
 const SALIDA = ciudad.salida;
 
 // Los dos vehículos se arman al principio; en la escena solo está el elegido.
-const vehiculos = { carro: new Vehiculo('carro'), moto: new Vehiculo('moto') };
+const TIPOS = ['moto', 'carro', 'monstruo', 'bomberos'];
+const NOMBRES = { moto: 'la moto', carro: 'el carro', monstruo: 'el monster truck', bomberos: 'el camión de bomberos' };
+const vehiculos = Object.fromEntries(TIPOS.map((t) => [t, new Vehiculo(t)]));
 let vehiculo = vehiculos.carro;
 escena.add(vehiculo.objeto);
 vehiculo.colocar(SALIDA.x, SALIDA.z, SALIDA.rumbo);
@@ -188,7 +193,7 @@ for (const e of [...CALCOMANIAS, '🗑️']) {
     } else {
       taller.elegirCalcomania(e);
       sonido.sonidoSi();
-      sonido.decir(vehiculo.tipo === 'moto' ? '¡Ahora toca la moto para pegarla!' : '¡Ahora toca el carro para pegarla!');
+      sonido.decir(`¡Ahora toca ${NOMBRES[vehiculo.tipo]} para pegarla!`);
     }
     for (const otro of botonesCalcomania) otro.classList.toggle('elegida', otro.textContent === taller.calcomania);
   });
@@ -228,24 +233,27 @@ const ICONO_RIN = {
     [...Array(10).keys()].map((i) => `<rect x="19.3" y="9.5" width="1.4" height="10.5" fill="#eef2f6" transform="rotate(${i * 36} 20 20)"/>`).join('') + '</svg>',
 };
 const SILUETA = (ala) => `<svg viewBox="0 0 48 30"><path d="M4 22 V16 Q4 13 8 13 L14 12 L19 6 H31 L36 12 L42 13 Q45 14 45 17 V22 Z" fill="#ef233c"/>${ala}<circle cx="13" cy="23" r="4" fill="#222"/><circle cx="36" cy="23" r="4" fill="#222"/></svg>`;
-const OPCIONES = {
-  carro: [
+// Todas las filas posibles; cada vehículo muestra solo las de las piezas que tiene.
+const FILAS = [
     { pieza: 'rines', opciones: [['clasico', ICONO_RIN.clasico], ['estrella', ICONO_RIN.estrella], ['deportivo', ICONO_RIN.deportivo]], voz: '¡Rines nuevos!' },
     { pieza: 'grandes', opciones: [[false, '<span style="font-size:60%">🛞</span>'], [true, '🛞']], voz: (v) => (v ? '¡Llantas gigantes!' : '¡Llantas normales!') },
     { pieza: 'aleron', opciones: [['ninguno', SILUETA('')], ['chico', SILUETA('<rect x="2" y="10" width="9" height="2" fill="#30343b"/>')], ['grande', SILUETA('<rect x="0" y="5" width="11" height="2.5" fill="#30343b"/><rect x="4" y="7" width="1.5" height="6" fill="#30343b"/>')]], voz: (v) => (v === 'ninguno' ? '¡Sin alerón!' : '¡Alerón!') },
     { pieza: 'techo', opciones: [['nada', '🚫'], ['policia', '🚨'], ['bomberos', '🚒'], ['taxi', '🚕'], ['maletas', '🧳']], voz: (v) => ({ nada: '¡Sin nada arriba!', policia: '¡Patrulla! Toca el claxon.', bomberos: '¡Bomberos! Toca el claxon.', taxi: '¡Taxi!', maletas: '¡Listo para el viaje!' })[v] },
-    { pieza: 'claxon', opciones: [['normal', '📯'], ['pato', '🦆'], ['tren', '🚂']], claxon: true },
-  ],
-  moto: [
-    { pieza: 'rines', opciones: [['clasico', ICONO_RIN.clasico], ['estrella', ICONO_RIN.estrella], ['deportivo', ICONO_RIN.deportivo]], voz: '¡Rines nuevos!' },
     { pieza: 'casco', opciones: ['#ffd60a', '#ef233c', '#1d7ff2', '#2dc653', '#ff5fa2', '#f4f5f7'].map((c) => [c, '']), color: true, voz: '¡Casco nuevo!' },
     { pieza: 'claxon', opciones: [['normal', '📯'], ['pato', '🦆'], ['tren', '🚂']], claxon: true },
-  ],
-};
+];
+function filasDe(v) {
+  const filas = FILAS.filter((f) => f.pieza in v.apariencia.piezas);
+  // El camión de bomberos trae su sirena como primera opción de claxon.
+  if (v.tipo === 'bomberos') {
+    return filas.map((f) => (f.pieza === 'claxon' ? { ...f, opciones: [['bomberos', '🚒'], ...f.opciones] } : f));
+  }
+  return filas;
+}
 const contenidoPiezas = $('contenido-piezas');
 function armarPiezas() {
   contenidoPiezas.replaceChildren();
-  for (const fila of OPCIONES[vehiculo.tipo]) {
+  for (const fila of filasDe(vehiculo)) {
     const div = document.createElement('div');
     div.className = 'fila-piezas';
     const botones = [];
@@ -279,7 +287,7 @@ function armarPiezas() {
 const btnClaxon = $('btn-claxon');
 function ponerIconoClaxon() {
   const p = vehiculo.apariencia.piezas;
-  btnClaxon.textContent = p.techo === 'policia' || p.techo === 'bomberos' ? '🚨' : { normal: '📯', pato: '🦆', tren: '🚂' }[p.claxon] ?? '📯';
+  btnClaxon.textContent = p.techo === 'policia' || p.techo === 'bomberos' ? '🚨' : { normal: '📯', pato: '🦆', tren: '🚂', bomberos: '🚨' }[p.claxon] ?? '📯';
 }
 alTocar(btnClaxon, () => sonido.claxon(vehiculo.tocarClaxon(), vehiculo.tipo === 'moto'));
 
@@ -287,7 +295,7 @@ function ponerPestana(nombre) {
   panelTaller.dataset.pestana = nombre;
   taller.ponerPestana(nombre);
   for (const otro of botonesCalcomania) otro.classList.remove('elegida');
-  const cual = vehiculo.tipo === 'moto' ? 'la moto' : 'el carro';
+  const cual = NOMBRES[vehiculo.tipo];
   if (nombre === 'reparacion') {
     sonido.decir(vehiculo.apariencia.cuantosDanos > 0 ? '¡Toca las llaves para arreglarlo!' : `¡${cual[0].toUpperCase() + cual.slice(1)} está como nuevo!`);
   } else if (nombre === 'piezas') sonido.decir('¡Elige piezas nuevas!');
@@ -306,7 +314,7 @@ function abrirTaller() {
   vehiculo.objeto.traverse((m) => { if (m.isMesh) m.castShadow = !m.material.transparent; });
   hud.hidden = true;
   panelTaller.hidden = false;
-  $('btn-taller-salir').textContent = (vehiculo.tipo === 'moto' ? '🏍️' : '🚗') + ' ➜';
+  $('btn-taller-salir').textContent = ({ moto: '🏍️', carro: '🚗', monstruo: '🛻', bomberos: '🚒' })[vehiculo.tipo] + ' ➜';
   lodoMostrado = -1;
   danosMostrados = -1;
   armarPiezas();
@@ -314,7 +322,7 @@ function abrirTaller() {
   const inicial = vehiculo.apariencia.cuantosDanos > 0 ? 'reparacion' : vehiculo.apariencia.manchasVisibles > 0 ? 'lavado' : 'pintura';
   panelTaller.dataset.pestana = inicial;
   taller.ponerPestana(inicial);
-  sonido.decir(vehiculo.tipo === 'moto' ? '¡Bienvenido al taller! ¿Qué le hacemos a tu moto?' : '¡Bienvenido al taller! ¿Qué le hacemos a tu carro?');
+  sonido.decir(`¡Bienvenido al taller! ¿Qué le hacemos a ${NOMBRES[vehiculo.tipo].replace(/^(la|el) /, (m) => (m === 'la ' ? 'tu ' : 'tu '))}?`);
 }
 
 function cerrarTaller() {
@@ -381,7 +389,8 @@ for (const boton of document.querySelectorAll('[data-vehiculo]')) {
     sonido.iniciarAudio();
     const tipo = boton.dataset.vehiculo;
     ponerVehiculo(tipo);
-    sonido.decir(`¡${tipo === 'moto' ? 'La moto' : 'El carro'}! ¿Quieres pasear o jugar retos?`);
+    const nombre = NOMBRES[tipo];
+    sonido.decir(`¡${nombre[0].toUpperCase() + nombre.slice(1)}! ¿Quieres pasear o jugar retos?`);
     mostrarPantalla('modo');
   });
 }

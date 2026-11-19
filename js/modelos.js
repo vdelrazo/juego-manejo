@@ -38,6 +38,7 @@ const MAT = {
 };
 
 const sombraSuave = texturas.sombraSuave();
+export { MAT, malla, cajaR, sombraPiso };
 
 function malla(geo, material, { sombra = true } = {}) {
   const m = new THREE.Mesh(geo, material);
@@ -305,9 +306,6 @@ export function crearMoto({ color = 0x1d7ff2, casco = 0xffd60a, chamarra = 0x06d
   const cuerpo = new THREE.Group();          // en la moto todo se inclina junto, desde el piso
   raiz.add(cuerpo);
   const piel = pintura(color);
-  const pielCasco = pintura(casco);
-  const ropa = new THREE.MeshStandardMaterial({ color: chamarra, roughness: 0.75 });
-  const pantalon = new THREE.MeshStandardMaterial({ color: 0x3d405b, roughness: 0.8 });
   const R = RUEDA_MOTO;
 
   // Ruedas: llanta (dona) + rin con rayos + disco de freno.
@@ -382,7 +380,26 @@ export function crearMoto({ color = 0x1d7ff2, casco = 0xffd60a, chamarra = 0x06d
   calavera.position.set(0, 0.88, -0.94);
   cuerpo.add(calavera);
 
-  // Piloto.
+  const { grupo: jinete, pielCasco: casco2 } = piloto({ casco, chamarra });
+  cuerpo.add(jinete);
+
+  raiz.add(sombraPiso(1.3, 2.8));
+
+  return {
+    tipo: 'moto', raiz, cuerpo, ruedas: [trasera, delantera], pivotesDelanteros: [pivote], piel, pielCasco: casco2, faros: [faro], salpicadera,
+    superficies: [tanque, cola, caja],
+    radioRueda: R,
+    anclaPaquete: { padre: cuerpo, x: 0, y: 1.2, z: -0.86, tam: 0.5 },
+    alturaEstrellitas: 2.3,
+  };
+}
+
+// Piloto de moto con casco (se sienta en una moto cuyo asiento queda a ~0.9 m).
+export function piloto({ casco = 0xffd60a, chamarra = 0x06d6a0 } = {}) {
+  const cuerpo = new THREE.Group();
+  const pielCasco = pintura(casco);
+  const ropa = new THREE.MeshStandardMaterial({ color: chamarra, roughness: 0.75 });
+  const pantalon = new THREE.MeshStandardMaterial({ color: 0x3d405b, roughness: 0.8 });
   const cadera = V(0, 1.0, -0.26);
   const hombro = V(0, 1.5, -0.04);
   for (const x of [-0.15, 0.15]) {
@@ -406,21 +423,13 @@ export function crearMoto({ color = 0x1d7ff2, casco = 0xffd60a, chamarra = 0x06d
   const visera = malla(new THREE.SphereGeometry(0.215, 24, 12, Math.PI * 0.15, Math.PI * 0.7, Math.PI * 0.35, Math.PI * 0.28), MAT.vidrio);
   visera.position.copy(cabeza.position);
   cuerpo.add(visera);
-
-  raiz.add(sombraPiso(1.3, 2.8));
-
-  return {
-    tipo: 'moto', raiz, cuerpo, ruedas: [trasera, delantera], pivotesDelanteros: [pivote], piel, pielCasco, faros: [faro], salpicadera,
-    superficies: [tanque, cola, caja],
-    radioRueda: R,
-    anclaPaquete: { padre: cuerpo, x: 0, y: 1.2, z: -0.86, tam: 0.5 },
-    alturaEstrellitas: 2.3,
-  };
+  return { grupo: cuerpo, pielCasco };
 }
 
 // ---------- Piezas que se cambian en el taller ----------
 
 export function ponerRines(modelo, estilo) {
+  if (modelo.partes?.ponerRines) return modelo.partes.ponerRines(estilo);
   for (const rueda of modelo.ruedas) {
     const viejo = rueda.getObjectByName('rin');
     if (viejo) rueda.remove(viejo);
@@ -433,15 +442,16 @@ export function ponerRines(modelo, estilo) {
 
 // Llantas gigantes (como de "monster truck"): ruedas más grandes y la carrocería más alta.
 export function ponerLlantasGrandes(modelo, si) {
-  if (modelo.tipo !== 'carro') return;
+  const base = modelo.radioBase ?? RUEDA_CARRO;
+  const alturaCuerpo = modelo.alturaCuerpo ?? 0.55;
   const k = si ? 1.35 : 1;
-  const r = RUEDA_CARRO * k;
+  const r = base * k;
   for (const rueda of modelo.ruedas) {
     rueda.scale.setScalar(k);
     if (!modelo.pivotesDelanteros.includes(rueda.parent)) rueda.position.y = r;
   }
   for (const p of modelo.pivotesDelanteros) p.position.y = r;
-  modelo.cuerpo.position.y = 0.55 + (r - RUEDA_CARRO) * 1.8;
+  modelo.cuerpo.position.y = alturaCuerpo + (r - base) * 1.8;
   modelo.radioRueda = r;
 }
 
@@ -451,26 +461,28 @@ function quitarPieza(padre, nombre) {
 }
 
 export function ponerAleron(modelo, tipo) {
-  if (modelo.tipo !== 'carro') return;
+  if (!modelo.carroceria) return;
   quitarPieza(modelo.carroceria, 'aleron');
   if (tipo === 'ninguno') return;
+  // Dónde va: cajuela del carro hecho en código, o lo que diga el modelo de artista.
+  const a = modelo.anclas?.aleron ?? { y: 1.08, z: -1.62, ancho: 1.6 };
   const g = new THREE.Group();
   g.name = 'aleron';
   const grande = tipo === 'grande';
   const alto = grande ? 0.42 : 0.14;
-  for (const x of [-0.55, 0.55]) {
+  for (const x of [-0.34, 0.34]) {
     const poste = cajaR(0.07, alto + 0.05, 0.14, 0.03, MAT.plastico);
-    poste.position.set(x, 1.08 + alto / 2, -1.62);
+    poste.position.set(x * a.ancho, a.y + alto / 2, a.z);
     g.add(poste);
   }
-  const ala = cajaR(grande ? 1.95 : 1.6, 0.07, grande ? 0.48 : 0.36, 0.03, modelo.piel);
-  ala.position.set(0, 1.1 + alto, -1.68);
+  const ala = cajaR(a.ancho * (grande ? 1.22 : 1), 0.07, grande ? 0.48 : 0.36, 0.03, modelo.pielLisa ?? modelo.piel);
+  ala.position.set(0, a.y + 0.02 + alto, a.z - 0.06);
   ala.rotation.x = -0.12;
   g.add(ala);
   if (grande) {
-    for (const x of [-0.98, 0.98]) {
+    for (const x of [-0.61, 0.61]) {
       const placa = cajaR(0.04, 0.22, 0.52, 0.02, MAT.plastico);
-      placa.position.set(x, 1.12 + alto, -1.68);
+      placa.position.set(x * a.ancho, a.y + 0.04 + alto, a.z - 0.06);
       g.add(placa);
     }
   }
@@ -479,13 +491,14 @@ export function ponerAleron(modelo, tipo) {
 
 // Techo: nada, torreta de policía, de bomberos, letrero de taxi o maletas.
 export function ponerTecho(modelo, tipo) {
-  if (modelo.tipo !== 'carro') return;
+  if (!modelo.carroceria) return;
   quitarPieza(modelo.carroceria, 'techo');
   modelo.luces = [];
   if (tipo === 'nada') return;
   const g = new THREE.Group();
   g.name = 'techo';
-  g.position.set(0, 1.6, -0.42);
+  const t = modelo.anclas?.techo ?? { y: 1.6, z: -0.42 };
+  g.position.set(0, t.y, t.z);
   const luz = (color) => new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.25, roughness: 0.25 });
   if (tipo === 'policia' || tipo === 'bomberos') {
     g.add(cajaR(1.15, 0.08, 0.32, 0.03, MAT.plastico));
@@ -545,6 +558,7 @@ export function ponerColorCasco(modelo, hex) {
 
 // Piezas que se pueden dañar (y donde se pone la llave para repararlas).
 export function piezasDanables(modelo) {
+  if (modelo.partes?.piezasDanables) return modelo.partes.piezasDanables();
   if (modelo.tipo === 'carro') {
     return { defDel: modelo.defensas[0], defTras: modelo.defensas[1], faroIzq: modelo.faros[0], faroDer: modelo.faros[1] };
   }
@@ -553,11 +567,13 @@ export function piezasDanables(modelo) {
 
 // De frente se daña lo de adelante; de reversa, lo de atrás.
 export function piezasDeLado(modelo, deFrente) {
+  if (modelo.partes?.piezasDeLado) return modelo.partes.piezasDeLado(deFrente);
   if (modelo.tipo === 'carro') return deFrente ? ['defDel', 'faroIzq', 'faroDer'] : ['defTras'];
   return deFrente ? ['salpicadera', 'faro'] : [];
 }
 
 export function danarPieza(modelo, id, danada) {
+  if (modelo.partes?.danarPieza) return modelo.partes.danarPieza(id, danada);
   const p = piezasDanables(modelo)[id];
   if (!p) return;
   if (id === 'defDel' || id === 'defTras') {

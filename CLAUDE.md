@@ -26,9 +26,10 @@ actualízala aquí.
 Dos pantallas, cada una con dos opciones enormes (dibujos, sin texto) y la voz que pregunta.
 No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso de inclinación.
 🏠 regresa a la primera pantalla.
-1. **Elegir vehículo:** moto o carro. El camión de bomberos queda para después.
-   Se manejan con la misma lógica; la moto se inclina hacia adentro en las curvas, es más
-   chica (cabe por lugares más angostos) y su motor suena más agudo.
+1. **Elegir vehículo** (2026-11-18): moto, carro, **monster truck** o **camión de bomberos**.
+   Se manejan con la misma lógica; cambian el tamaño (para chocar y para la cámara), el sonido
+   del motor y las piezas del taller. La moto se inclina hacia adentro en las curvas y cabe por
+   lugares más angostos; el monster truck ruge más grave; el de bomberos trae sirena de claxon.
 2. **Elegir modo:** "¿Quieres pasear o jugar retos?"
    - **Paseo libre:** recorrer la ciudad sin objetivos.
    - **Retos:** una flecha grande sobre el vehículo (inclinada hacia la cámara para que se vea
@@ -88,7 +89,10 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
     y queda como nuevo. Al terminar: festejo y "¡Quedó como nuevo!".
   - 🔩 Piezas del carro: rines (clásico, estrella, deportivo), llantas gigantes, alerón (chico o
     grande), techo (torreta de policía, de bomberos, letrero de taxi o maletas) y claxon (normal,
-    pato o tren). De la moto: rines, color del casco y claxon.
+    pato o tren). Monster truck: alerón, techo y claxon. Bomberos: claxon (sirena, normal, pato o
+    tren). Moto: color del casco y claxon.
+  - Con los modelos de Kenney, el daño de un choque es una defensa suelta colgando (pieza de
+    choque de Kenney) más rayones; no tienen faros que se rompan.
   - Al manejar hay un botón amarillo de claxon (abajo al centro). Con torreta suena la sirena y
     las luces parpadean.
 
@@ -136,9 +140,16 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
 
 - **HTML + JavaScript (módulos ES) + Three.js.** Sin paso de compilación: lo que está en `main` es lo que se publica.
 - **Three.js copiado dentro del repo** (`vendor/three/`, versión 0.187.0), no cargado desde un CDN, para que funcione sin internet.
-- **Modelos hechos en el código**, sin archivos 3D: formas redondeadas (perfiles extruidos con
-  bisel, cápsulas, tornos) y piezas separadas para poder pintarlas y cambiarlas en el taller.
-  Texturas dibujadas en el código (canvas), sin archivos de imagen. Sonidos generados con Web Audio.
+- **Vehículos de artista** (2026-11-18), en `modelos/`:
+  - Carro (sedán), camión de bomberos y monster truck: **Kenney** (*Car Kit* y *Toy Car Kit*, CC0).
+  - Moto: "Motorcycle" de **jeremy** vía Poly Pizza (**CC-BY 3.0**: hay que darle crédito; ver
+    `CREDITOS.md`). Viene en una sola pieza: el código le separa las llantas para que giren.
+  - Como el juego es público, solo se usan modelos **CC0** o **CC-BY con crédito** en `CREDITOS.md`.
+  - Pintura: los de Kenney toman colores de una imagen-paleta; se pinta cambiando en una copia
+    todos los tonos del color principal de la carrocería. La moto se pinta con un material propio.
+  - `?modelos=codigo` en la dirección usa el carro y la moto hechos en código (para comparar).
+- **Lo demás está hecho en el código:** ciudad, piloto de la moto, piezas del taller (alerón,
+  torretas, rines del carro hecho en código), texturas (canvas) y sonidos (Web Audio).
 - **Complementos de Three.js** (efectos de imagen) copiados en `vendor/three/addons/`; un
   *import map* en `index.html` hace que `three` apunte a la copia local.
 - **`?depurar`** al final de la dirección muestra fps y lo que lee el sensor de inclinación, para revisar en el iPad.
@@ -176,6 +187,10 @@ No hay ▶: el primer toque (al elegir vehículo) activa el sonido y el permiso 
 8. **Semáforos:** estrellas extra por detenerse en rojo.
 9. **Instalable y pulido:** PWA sin internet, ícono, música, voces y ajustes de rendimiento.
 
+Fuera de la lista original: **vehículos de artista** (Kenney y moto de jeremy) y dos vehículos
+nuevos (monster truck y camión de bomberos). *Hecho el 2026-11-18.* Pendiente de decidir: usar
+también los edificios del *City Kit* de Kenney para la ciudad.
+
 ## Preguntas abiertas
 
 - Confirmar el modelo exacto de los iPads.
@@ -200,3 +215,5 @@ Abrir https://vdelrazo.github.io/juego-manejo/?depurar y revisar:
 13. ¿Es fácil entrar al taller? ¿Se entiende el panel (pintura, calcomanías, lavado)?
 14. ¿Se ve bien el lodo y es fácil quitarlo tallando?
 15. ¿Se entienden las llaves para reparar y los dibujos de las piezas? ¿El botón de claxon estorba?
+16. ¿Les gustan los vehículos nuevos (Kenney y la moto)? ¿Reconocen el monster truck y el de bomberos
+    en el menú? ¿Cuánto tarda en cargar la primera vez?

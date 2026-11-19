@@ -39,6 +39,8 @@ document.addEventListener('visibilitychange', () => {
 const TONOS = {
   carro: { base: 48, rango: 62 },
   moto: { base: 75, rango: 105 },
+  monstruo: { base: 36, rango: 50 },
+  bomberos: { base: 42, rango: 52 },
 };
 let tono = TONOS.carro;
 

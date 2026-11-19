@@ -24,3 +24,4 @@ La inclinación y el sonido de iOS solo se pueden probar en el iPad.
 Agregando `?depurar` a la dirección se ven los fps y lo que lee el sensor de inclinación.
 
 Las reglas y las decisiones de diseño están en [CLAUDE.md](CLAUDE.md).
+Los créditos de los modelos 3D (Kenney y la moto de jeremy) están en [CREDITOS.md](CREDITOS.md).

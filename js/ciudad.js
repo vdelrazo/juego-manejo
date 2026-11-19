@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Obstaculos } from './choques.js';
 import * as tex from './texturas.js';
-import { crearCarro, ESTILOS_RIN } from './modelos.js';
+import { crearKenney } from './modelos-artista.js';
 import { SOL } from './graficos.js';
 
 const N = 5;                                  // manzanas por lado
@@ -156,7 +156,7 @@ function esferaSuave(detalle) {
 function juntarPorMaterial(objeto) {
   objeto.updateMatrixWorld(true);
   const grupos = new Map();
-  objeto.traverse((o) => {
+  objeto.traverseVisible((o) => {   // lo escondido (por ejemplo, defensas sueltas) no se junta
     if (!o.isMesh) return;
     let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
     for (const nombre of Object.keys(g.attributes)) {
@@ -536,11 +536,11 @@ export function crearCiudad(escena) {
     // Carros estacionados: el mismo modelo que el del jugador, todos juntados para que pesen poco.
     const estacionados = new THREE.Group();
     const COLORES_ESTACIONADOS = [0x3a86ff, 0xffbe0b, 0x8ac926, 0x9b5de5, 0xf15bb5];
-    const PLACAS = ['LUNA', 'SOL', 'MAR', 'RIO', 'PAZ'];
     [1, 4, 6, 8, 11].forEach((indice, k) => {
       const c = cajones[indice];
       c.ocupado = true;
-      const carro = crearCarro({ color: COLORES_ESTACIONADOS[k], rines: ESTILOS_RIN[k % ESTILOS_RIN.length], placa: PLACAS[k] });
+      const carro = crearKenney('carro');
+      carro.pintar(COLORES_ESTACIONADOS[k]);
       carro.raiz.position.set(c.cx, piso, c.cz);
       carro.raiz.rotation.y = c.cz > bz ? Math.PI : 0;   // de frente al pasillo
       estacionados.add(carro.raiz);

@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { crearCarro, crearMoto } from './modelos.js';
+import { crearKenney, crearMotoArtista } from './modelos-artista.js';
 import { Apariencia } from './apariencia.js';
 
 export const VEL_MAX = 10;          // metros por segundo
@@ -23,23 +24,48 @@ const RESPUESTA_GIRO = 6;           // qué tan rápido obedece el volante
 const UMBRAL_CHOQUE = 2;            // m/s contra algo para que cuente como choque
 const TIEMPO_REBOTE = 0.5;          // segundos en que no hace caso a los pedales
 
-// Lo que cambia entre carro y moto.
+// Lo que cambia entre vehículos. "circulos": dónde están (a lo largo) los círculos con los que
+// se cuida de chocar; los vehículos largos usan tres.
 const MEDIDAS = {
   carro: {
-    radioChoque: 1.1,           // se cuida con dos círculos: adelante y atrás
-    distanciaCirculos: 1.0,
+    radioChoque: 1.2,
+    circulos: [-0.8, 0.8],
     ladeo: -0.05,               // el carro se ladea hacia afuera de la curva
-    alturaFlecha: 3.5,
-    camara: { distancia: 8.5, altura: 4.3, mira: 1.2, vuelta: 10 },
+    alturaFlecha: 3.4,
+    camara: { distancia: 8.8, altura: 4.4, mira: 1.2, vuelta: 10 },
   },
   moto: {
     radioChoque: 0.6,
-    distanciaCirculos: 0.55,
+    circulos: [-0.55, 0.55],
     ladeo: 0.32,                // la moto se inclina hacia adentro de la curva
     alturaFlecha: 2.9,
     camara: { distancia: 7, altura: 3.5, mira: 1.0, vuelta: 7.5 },
   },
+  monstruo: {
+    radioChoque: 1.35,
+    circulos: [-0.6, 0.6],
+    ladeo: -0.08,
+    alturaFlecha: 4.6,
+    camara: { distancia: 10.5, altura: 5.6, mira: 1.8, vuelta: 12 },
+  },
+  bomberos: {
+    radioChoque: 1.2,
+    circulos: [-1.45, 0, 1.45],
+    ladeo: -0.04,
+    alturaFlecha: 4.0,
+    camara: { distancia: 11, altura: 5.2, mira: 1.6, vuelta: 12.5 },
+  },
 };
+
+// Con ?modelos=codigo se usan el carro y la moto hechos en código (para comparar).
+const SOLO_CODIGO = new URLSearchParams(location.search).get('modelos') === 'codigo';
+
+function crearModelo(tipo) {
+  if (SOLO_CODIGO && tipo === 'carro') return { modelo: crearCarro(), origen: 'codigo' };
+  if (SOLO_CODIGO && tipo === 'moto') return { modelo: crearMoto(), origen: 'codigo' };
+  if (tipo === 'moto') return { modelo: crearMotoArtista(), origen: 'artista' };
+  return { modelo: crearKenney(tipo), origen: 'artista' };
+}
 
 const limitar = (v, min, max) => (v < min ? min : v > max ? max : v);
 
@@ -47,6 +73,7 @@ export class Vehiculo {
   constructor(tipo = 'carro') {
     this.tipo = tipo;
     Object.assign(this, MEDIDAS[tipo]);
+    this.distanciaCirculos = Math.max(...this.circulos.map(Math.abs));   // el círculo más lejano del centro
     this.objeto = new THREE.Group();
     this.posicion = this.objeto.position;
     this.adelante = new THREE.Vector3(0, 0, 1);
@@ -59,7 +86,8 @@ export class Vehiculo {
     this.reloj = 0;
     this.alChocar = null;
     // La forma: cuerpo (se ladea), ruedas, pivotes de las ruedas de adelante y piezas para el taller.
-    this.modelo = tipo === 'moto' ? crearMoto() : crearCarro();
+    const { modelo, origen } = crearModelo(tipo);
+    this.modelo = modelo;
     this.objeto.add(this.modelo.raiz);
     this.cuerpo = this.modelo.cuerpo;
     this.ruedas = this.modelo.ruedas;
@@ -67,7 +95,7 @@ export class Vehiculo {
     this.radioRueda = this.modelo.radioRueda;
     this.armarPaquete();
     this.armarEstrellitas();
-    this.apariencia = new Apariencia(tipo, this.modelo);
+    this.apariencia = new Apariencia(tipo, this.modelo, origen);
     this.armarHumo();
     this.sirena = 0;          // segundos que les quedan a las luces de la torreta
     // El vehículo no entra al mapa de sombras (que se recalcula de vez en cuando):
@@ -137,9 +165,9 @@ export class Vehiculo {
     let nx = 0;
     let nz = 0;
     for (let vuelta = 0; vuelta < 3; vuelta++) {
-      for (const lado of [1, -1]) {
-        const cx = this.posicion.x + this.adelante.x * this.distanciaCirculos * lado;
-        const cz = this.posicion.z + this.adelante.z * this.distanciaCirculos * lado;
+      for (const d of this.circulos) {
+        const cx = this.posicion.x + this.adelante.x * d;
+        const cz = this.posicion.z + this.adelante.z * d;
         const golpe = obstaculos.empujar(cx, cz, this.radioChoque);
         if (!golpe) continue;
         this.posicion.x += golpe.nx * golpe.pen;
@@ -219,7 +247,7 @@ export class Vehiculo {
     this.humo.frustumCulled = false;
     this.humo.count = 0;
     this.bocanadas = Array.from({ length: N }, (_, i) => ({ t: i / N }));
-    this.origenHumo = this.tipo === 'moto' ? new THREE.Vector3(0, 0.75, 0.15) : new THREE.Vector3(0, 1.15, 1.35);
+    this.origenHumo = this.modelo.origenHumo ?? (this.tipo === 'moto' ? new THREE.Vector3(0, 0.75, 0.15) : new THREE.Vector3(0, 1.15, 1.35));
     this.objeto.add(this.humo);
   }
 

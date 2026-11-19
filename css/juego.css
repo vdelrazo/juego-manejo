@@ -589,3 +589,14 @@ html, body {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   border: none;
 }
+
+/* ---------- Menú con 4 vehículos ---------- */
+
+#elegir-vehiculo { gap: min(2.4vw, 26px); }
+
+#elegir-vehiculo .opcion {
+  width: min(21vw, 250px);
+  height: min(15.5vw, 186px);
+  padding: 10px;
+  border-radius: 30px;
+}

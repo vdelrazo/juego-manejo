@@ -18,7 +18,9 @@ const MAX_RAYONES = 6;
 // Piezas que trae cada vehículo de fábrica.
 export const PIEZAS_INICIALES = {
   carro: { rines: 'clasico', grandes: false, aleron: 'ninguno', techo: 'nada', claxon: 'normal' },
-  moto: { rines: 'deportivo', casco: '#ffd60a', claxon: 'normal' },
+  moto: { casco: '#ffd60a', claxon: 'normal' },
+  monstruo: { aleron: 'ninguno', techo: 'nada', claxon: 'normal' },
+  bomberos: { claxon: 'bomberos' },
 };
 
 function leerTodo() {
@@ -113,6 +115,8 @@ function lodo() {
 // Pega un parche sobre una pieza. p y n están en el espacio del "padre" de la pieza.
 function parche(pieza, p, n, tam, giro, material) {
   pieza.updateMatrix();
+  pieza.parent.updateWorldMatrix(true, false);
+  tam /= pieza.parent.getWorldScale(new THREE.Vector3()).x || 1;
   const molde = new THREE.Mesh(pieza.geometry);
   molde.matrixWorld.copy(pieza.matrix);
   const ayuda = new THREE.Object3D();
@@ -143,9 +147,11 @@ function puntoEnPieza(interseccion) {
 }
 
 export class Apariencia {
-  constructor(tipo, modelo) {
+  // origen: 'artista' o 'codigo' (las calcomanías guardadas solo sirven para el mismo modelo).
+  constructor(tipo, modelo, origen = 'artista') {
     this.tipo = tipo;
     this.modelo = modelo;
+    this.origen = origen;
     this.superficies = modelo.superficies;   // piezas donde se pueden pegar cosas
     this.colorDestino = null;
     this.calcomanias = [];                    // { datos, malla }
@@ -166,18 +172,21 @@ export class Apariencia {
   cargar() {
     const d = leerTodo()[this.tipo];
     if (!d) return;
-    if (d.color) this.modelo.piel.color.set(d.color);
-    for (const c of d.calcomanias || []) this.pegar(c, false);
+    if (d.color) this.aplicarColor(d.color);
+    const mismoModelo = (d.origen ?? 'codigo') === this.origen;
+    if (mismoModelo) for (const c of d.calcomanias || []) this.pegar(c, false);
     this.lodo = d.lodo ?? 0;
     this.mostrarLodo();
-    Object.assign(this.piezas, d.piezas || {});
+    // Solo las piezas que este vehículo tiene (por ejemplo, la moto de artista no cambia rines).
+    for (const [k, v] of Object.entries(d.piezas || {})) if (k in this.piezas) this.piezas[k] = v;
     for (const id of Object.keys(d.danos || {})) if (d.danos[id]) this.danar(id, false);
-    for (const k of d.rayones || []) this.rayar(k, false);
+    if (mismoModelo) for (const k of d.rayones || []) this.rayar(k, false);
   }
 
   guardar() {
     const todo = leerTodo();
     todo[this.tipo] = {
+      origen: this.origen,
       color: '#' + (this.colorDestino ?? this.modelo.piel.color).getHexString(),
       calcomanias: this.calcomanias.map((c) => c.datos),
       lodo: redondear(this.lodo),
@@ -191,8 +200,15 @@ export class Apariencia {
   // ---------- Pintura ----------
 
   pintar(hex) {
-    this.colorDestino = new THREE.Color(hex);
+    // Los modelos de artista pintan su paleta de una vez (la nube de pintura tapa el cambio).
+    if (this.modelo.pintar) this.modelo.pintar(hex);
+    else this.colorDestino = new THREE.Color(hex);
     this.guardar();
+  }
+
+  aplicarColor(hex) {
+    if (this.modelo.pintar) this.modelo.pintar(hex);
+    else this.modelo.piel.color.set(hex);
   }
 
   // ---------- Calcomanías ----------
@@ -233,14 +249,11 @@ export class Apariencia {
   aplicarPiezas() {
     const m = this.modelo;
     const p = this.piezas;
-    ponerRines(m, p.rines);
-    if (this.tipo === 'carro') {
-      ponerLlantasGrandes(m, p.grandes);
-      ponerAleron(m, p.aleron);
-      ponerTecho(m, p.techo);
-    } else {
-      ponerColorCasco(m, p.casco);
-    }
+    if ('rines' in p) ponerRines(m, p.rines);
+    if ('grandes' in p) ponerLlantasGrandes(m, p.grandes);
+    if ('aleron' in p) ponerAleron(m, p.aleron);
+    if ('techo' in p) ponerTecho(m, p.techo);
+    if ('casco' in p) ponerColorCasco(m, p.casco);
   }
 
   ponerPieza(nombre, valor) {
@@ -259,6 +272,8 @@ export class Apariencia {
   }
 
   danar(id, guardar = true) {
+    // Solo lo que este vehículo puede mostrar (los de Kenney no tienen faros que se rompan).
+    if (!(id in piezasDanables(this.modelo))) return;
     this.danos[id] = true;
     danarPieza(this.modelo, id, true);
     if (guardar) this.guardar();
